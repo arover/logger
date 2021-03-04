@@ -1,7 +1,8 @@
 # File Logger for android
 
+this is a file logger written in java without fancy features.
 
-##Usage
+## Usage
 ```java
 class App extends Application {
     @Override
