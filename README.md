@@ -3,6 +3,7 @@
 this is a file logger written in java without fancy features.
 
 ## Usage
+
 ```java
 class App extends Application {
     @Override
@@ -20,6 +21,8 @@ class App extends Application {
                 .build()
                 // start old log delete task. 
                 .deleteOldLogs(7);
+        // use it like android.util.Log.
+        Log.d(TAG,"app is launching...");
     }
 }
 ```
