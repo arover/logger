@@ -5,6 +5,9 @@ this is a file logger written in java without fancy features.
 ## Usage
 
 ```java
+
+import com.arover.app.logger.Log;
+
 class App extends Application {
     @Override
     public void onCreate() {
