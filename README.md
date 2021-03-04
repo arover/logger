@@ -8,7 +8,8 @@ this is a file logger written in java without fancy features.
 
 import com.arover.app.logger.Log;
 
-class App extends Application {
+public class App extends Application {
+    static final String TAG = "App";
     @Override
     public void onCreate() {
         super.onCreate();
