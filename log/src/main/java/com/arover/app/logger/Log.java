@@ -2,6 +2,7 @@ package com.arover.app.logger;
 
 import com.arover.app.logger.LoggerManager.Level;
 
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
@@ -13,6 +14,9 @@ import java.net.UnknownHostException;
 public class Log {
 
     private static final String TAG = "Log";
+
+    public static File rootDir;
+    public static String crashLogDir;
 
     static LogWriterThread logWriterThread;
     private static int sLogLvl = Level.DEBUG.code;
@@ -52,6 +56,14 @@ public class Log {
         android.util.Log.i(TAG, "initialized... level=" + sLogLvlName + ",lvl="
                 + sLogLvl + ",Logcat Enabled=" + sLogcatEnabled + ",dir=" + manager
                 .getLogDirFullPath());
+    }
+
+    public static File getRootDir() {
+        return rootDir;
+    }
+
+    public static String getCrashLogDir() {
+        return crashLogDir;
     }
 
     public static boolean isInitialized() {

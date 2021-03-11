@@ -154,19 +154,14 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private String genLogFileName() {
-
         Calendar cal = Calendar.getInstance();
+        String filename  = cal.get(Calendar.YEAR)
+                + "-" + (cal.get(Calendar.MONTH) + 1)
+                + ("-") + cal.get(Calendar.DAY_OF_MONTH)
+                + "-"+logFileNo+".log";
+        logFileNo ++ ;
 
-        String name = "-" +
-                (cal.get(Calendar.MONTH) + 1) +
-                "-" +
-                cal.get(Calendar.DAY_OF_MONTH) +
-                "-" +
-                logFileNo +
-                ".log";
-        logFileNo ++;
-
-        return name;
+        return filename;
     }
 
     private void findAllOldLogsAndCompress() {

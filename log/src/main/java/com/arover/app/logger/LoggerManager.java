@@ -15,18 +15,15 @@ import java.util.concurrent.Executors;
  */
 public class LoggerManager {
     private static final String TAG = "LoggerManager";
-    private static final int DEFAULT_MAX_LOG_IN_DAYS = 15;
-    private static final long DELETE_LOG_DELAY = 3* 1000;
+    private static final int DEFAULT_MAX_LOG_IN_DAYS = 10;
+    private static final long DELETE_LOG_DELAY = 20 * 1000;
+    public static final String DEFAULT_CRASH_FOLDER_NAME = "log_crash";
     private final Context context;
     private String logDirFullPath;
     private boolean enableLogcat;
     private Level level = Level.VERBOSE;
     LogExecutor logExecutor;
     private String logFolderName = "log";
-
-    //application context
-    @SuppressLint("StaticFieldLeak")
-    private static LoggerManager INSTANCE;
 
     public static class Builder {
         private final LoggerManager mgr;
@@ -56,7 +53,6 @@ public class LoggerManager {
         }
 
         public LoggerManager build() {
-            LoggerManager.INSTANCE = mgr;
             mgr.initialize();
             return mgr;
         }
@@ -139,17 +135,34 @@ public class LoggerManager {
             if (dir == null) {
                 dir = context.getFilesDir();
             }
-            File logDir = new File(dir, folder);
-            if (!logDir.exists() && !logDir.mkdirs()) {
-                android.util.Log.e(TAG, "log folder not created " + logDir.getAbsolutePath());
-                return;
-            }
-
-            android.util.Log.i(TAG, "log dir=" + logDir.getAbsolutePath());
-            this.logDirFullPath = logDir.getAbsolutePath();
+            initDir(dir, folder);
         } else {
             android.util.Log.e(TAG, "initStorageFolder external storage is not writable");
+            initDir(context.getFilesDir(), folder);
         }
+    }
+
+
+    private void initDir(File dir, String folder) {
+        Log.rootDir = dir;
+        String path = dir + "/"+ folder;
+        android.util.Log.i(TAG, "log folder:"+path);
+        String crashLogPath = dir + "/" + DEFAULT_CRASH_FOLDER_NAME;
+        File crashLogDir = new File(crashLogPath);
+        if(!crashLogDir.exists()){
+            boolean ignored = crashLogDir.mkdirs();
+        }
+        Log.crashLogDir = crashLogDir.getAbsolutePath();
+
+        File logDir = new File(path);
+
+        if (!logDir.exists() && !logDir.mkdirs()) {
+            android.util.Log.e(TAG, "log folder not created " + logDir.getAbsolutePath());
+            return;
+        }
+
+        android.util.Log.i(TAG, "log dir=" + logDir.getAbsolutePath());
+        this.logDirFullPath = logDir.getAbsolutePath();
     }
 
     /* Checks if external storage is available for read and write */
