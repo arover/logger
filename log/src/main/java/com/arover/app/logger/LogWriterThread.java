@@ -5,11 +5,21 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
 
-import java.io.BufferedWriter;
+import com.arover.app.crypto.ChaCha20;
+
+import java.io.BufferedOutputStream;
 import java.io.Closeable;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class LogWriterThread extends HandlerThread {
@@ -21,26 +31,34 @@ public class LogWriterThread extends HandlerThread {
     private static final int MSG_LOG = 2;
     static final int MSG_COMPRESS_COMPLETED = 3;
 
-    private static final long FLUSH_LOG_DELAY = 120;
-    private static final long CLOSE_FILE_WRITER_DELAY = 1500;
+    private static final long FLUSH_LOG_DELAY = 500;
+    private static final long CLOSE_FILE_WRITER_DELAY = 5500;
 
-    private static final int BUFFER_SIZE = 4096;
-    private static final StringBuffer sLogBuffer = new StringBuffer();
+
+    private static final ByteBuffer sLogBuffer = ByteBuffer.allocateDirect(1024 * 200);
     private static final long MAX_LOG_FILE_SIZE = 1024 * 1024 * 1024;
     private final LoggerManager logManager;
+    public static LogWriterThread instance;
 
     private boolean isCompressing;
-    private BufferedWriter fileLogWriter;
+    private DataOutputStream fileLogWriter;
     private Handler handler;
     private LogCompressor logCompressor;
     private boolean doCheckUncompressedLogs = true;
     private File currentLogFile;
     private int logFileNo;
     private String currentLogFileName;
+    private byte[] key = new byte[32];
+    private byte[] nonce = "12345678".getBytes();
+
 
     LogWriterThread(LoggerManager loggerManager) {
         super("LogWriter", Process.THREAD_PRIORITY_BACKGROUND);
         this.logManager = loggerManager;
+        instance = this;
+        byte[] bytes = "private static final StringBuffer sLogBuffer = new StringBuffer();".getBytes();
+        System.arraycopy(bytes, 0, key, 0, 32);
+
     }
 
     @Override
@@ -51,20 +69,24 @@ public class LogWriterThread extends HandlerThread {
             @Override
             public void handleMessage(Message msg) {
                 switch (msg.what) {
-                    //首先写入内存;发送延迟写入命令。
                     case MSG_LOG:
                         String log = (String) msg.obj;
-                        sLogBuffer.append(log);
+                        byte[] bytes = log.getBytes();
+                        android.util.Log.d(TAG,"put log"+log+"，bytes="+bytesToHexString(bytes));
+                        sLogBuffer.put(log.getBytes());
                         sendEmptyMessageDelayed(MSG_FLUSH, FLUSH_LOG_DELAY);
                         break;
-                    //清除队列中的所有写入命令, 写log至文件。
+
                     case MSG_FLUSH:
+                        android.util.Log.d(TAG,"flush log begin");
                         removeMessages(MSG_FLUSH);
                         writeLog();
                         removeMessages(MSG_CLOSE);
                         sendEmptyMessageDelayed(MSG_CLOSE, CLOSE_FILE_WRITER_DELAY);
+                        android.util.Log.d(TAG,"flush log done");
                         break;
                     case MSG_CLOSE:
+                        android.util.Log.d(TAG,"close log write");
                         try {
                             if (fileLogWriter != null) {
                                 logFileNo--;
@@ -82,28 +104,81 @@ public class LogWriterThread extends HandlerThread {
                 }
             }
         };
-        Log.i(TAG, "LogWriterThread started level=" + Log.sLogLvlName + ",locat enable=" + Log.sLogcatEnabled);
+        Log.i(TAG, "LogWriterThread started level=" + Log.sLogLvlName + ",logcat enable=" + Log.sLogcatEnabled);
         Log.sInitialized = true;
     }
 
     private void writeLog() {
         if (Log.sLogDir == null) return;
 
-        try {
-            if (fileLogWriter == null || reachLogFileSizeLimit()) {
-                createLogWriter();
-            }
+        if (fileLogWriter == null || reachLogFileSizeLimit()) {
+            createLogWriter();
+        }
 
-            if (fileLogWriter != null && (sLogBuffer.length() > 0)) {
-                fileLogWriter.write(sLogBuffer.toString());
+        try {
+            if (fileLogWriter != null && (sLogBuffer.position() > 0)) {
+                int n  = sLogBuffer.position();
+                byte[] temp = new byte[n];
+                sLogBuffer.flip();
+                sLogBuffer.get(temp);
+                sLogBuffer.clear();
+                byte[] logData = encryptLogs(temp);
+                byte[] len = intToBytes(logData.length);
+                android.util.Log.d(TAG,"write len hex= "+bytesToHexString(len)
+                        +",len = "+logData.length+",log hex="+bytesToHexString(logData));
+                fileLogWriter.write(len);
+                fileLogWriter.write(logData);
                 fileLogWriter.flush();
             }
         } catch (Exception e) {
             android.util.Log.e(TAG, "writeLog", e);
             fileLogWriter = null;
-        } finally {
-            sLogBuffer.setLength(0);
         }
+    }
+
+    public static String bytesToHexString(byte[] data) {
+        if (data == null) return "";
+        StringBuilder s = new StringBuilder(data.length * 2);
+        for (byte b : data) {
+            s.append(String.format("%02x", b & 0xff));
+        }
+        return s.toString();
+    }
+
+    public static byte[] hexStringToBytes(String s) {
+        if(s.length()==0){
+            return new byte[0];
+        }
+
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
+    }
+    public static byte[] intToBytes(int value){
+        return new byte[] {
+                (byte)(value >>> 24),
+                (byte)(value >>> 16),
+                (byte)(value >>> 8),
+                (byte)value};
+    }
+    private byte[] encryptLogs(byte[] logs) {
+        return encrypt(logs, key, nonce);
+    }
+
+    byte[] encrypt(byte[] plain, byte[] key, byte[] nonce) {
+        byte[] result = new byte[plain.length];
+
+//        try {
+//            ChaCha20 cipher = new ChaCha20(key, nonce, 0);
+//            cipher.encrypt(result, result, result.length);
+//        } catch (Exception e) {
+//            android.util.Log.d(TAG,"encrypt",e);
+//        }
+        return result;
     }
 
     private boolean reachLogFileSizeLimit() {
@@ -112,7 +187,7 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private void createLogWriter() {
-        if(fileLogWriter!=null){
+        if (fileLogWriter != null) {
             close(fileLogWriter);
         }
 
@@ -135,9 +210,9 @@ public class LogWriterThread extends HandlerThread {
             }
             //todo check existing logfile size and update logfile No.
 
-            fileLogWriter = new BufferedWriter(new FileWriter(currentLogFile, true));
+            fileLogWriter = new DataOutputStream(new FileOutputStream(currentLogFile, true));
 
-            if (doCheckUncompressedLogs &&  !isCompressing) {
+            if (doCheckUncompressedLogs && !isCompressing) {
                 findAllOldLogsAndCompress();
                 doCheckUncompressedLogs = false;
             }
@@ -147,19 +222,20 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private void close(Closeable closeable) {
-        if(closeable==null) return;
-        try{
+        if (closeable == null) return;
+        try {
             closeable.close();
-        }catch (Exception ignored){}
+        } catch (Exception ignored) {
+        }
     }
 
     private String genLogFileName() {
         Calendar cal = Calendar.getInstance();
-        String filename  = cal.get(Calendar.YEAR)
+        String filename = cal.get(Calendar.YEAR)
                 + "-" + (cal.get(Calendar.MONTH) + 1)
                 + ("-") + cal.get(Calendar.DAY_OF_MONTH)
-                + "-"+logFileNo+".log";
-        logFileNo ++ ;
+                + "-" + logFileNo + ".log";
+        logFileNo++;
 
         return filename;
     }
@@ -168,7 +244,7 @@ public class LogWriterThread extends HandlerThread {
         if (isCompressing) return;
         android.util.Log.d(TAG, "findAllOldLogsAndCompress currentLogFileName=" + currentLogFileName);
 
-        logCompressor = new LogCompressor(handler,logManager.getLogDirFullPath(), currentLogFileName);
+        logCompressor = new LogCompressor(handler, logManager.getLogDirFullPath(), currentLogFileName);
         logCompressor.start();
     }
 
@@ -184,9 +260,9 @@ public class LogWriterThread extends HandlerThread {
 
     void writeLog(LoggerManager.Level level, String log) {
 
-        String logStr = getLogTime()+ level.prefix + log + "\n";
+        String logStr = getLogTime() + level.prefix + log + "\n";
         if (handler == null) {
-            sLogBuffer.append(logStr);
+            sLogBuffer.put(logStr.getBytes());
             android.util.Log.d(TAG, "looper not prepared, log put in buffer.");
             return;
         }
@@ -196,7 +272,7 @@ public class LogWriterThread extends HandlerThread {
 
     @Override
     public boolean quit() {
-        android.util.Log.d(TAG,"quit");
+        android.util.Log.d(TAG, "quit");
         writeLog();
 
         close(fileLogWriter);
@@ -204,5 +280,63 @@ public class LogWriterThread extends HandlerThread {
         return super.quit();
     }
 
+    public static int byteArrayToInt(byte[] b) {
+        return   b[3] & 0xFF |
+                (b[2] & 0xFF) << 8 |
+                (b[1] & 0xFF) << 16 |
+                (b[0] & 0xFF) << 24;
+    }
 
+    public void decryptLog() {
+        DataInputStream in = null;
+        FileOutputStream out = null;
+        android.util.Log.d(TAG,"read file = "+currentLogFile.getPath());
+        try {
+            File txtLogFile = new File(currentLogFile.getAbsolutePath() + ".txt");
+            in = new DataInputStream(new FileInputStream(currentLogFile));
+            out = new FileOutputStream(txtLogFile);
+            byte[] buf = new byte[1024 * 300];
+            byte[] sizeBuf = new byte[4];
+
+            int n = 0;
+            for(;;) {
+
+                int len;
+                try {
+                    len = in.readInt();
+                }catch (Exception e){
+                    android.util.Log.e(TAG,"readInt = ",e);
+                    break;
+                }
+//                 = byteArrayToInt(sizeBuf);
+                android.util.Log.d(TAG,"size = "+len);
+                if(len > 1024 * 200){
+                    android.util.Log.e(TAG,"consider increase buf size = "+len);
+                    return;
+                }
+                n = in.read(buf, 0, len);
+                if (n <= 0) {
+                    break;
+                }
+
+                out.write(encrypt(buf, key, nonce));
+            }
+            out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
 }

@@ -2,8 +2,10 @@ package com.arover.logger;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 
 import com.arover.app.logger.Log;
+import com.arover.app.logger.LogWriterThread;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -14,6 +16,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Log.d(TAG,"onCreate");
+        findViewById(R.id.button).setOnClickListener(v -> {
+            decryptLog();
+        });
+
+        findViewById(R.id.log).setOnClickListener(v -> {
+            Log.d(TAG,"on press log"+System.currentTimeMillis());
+        });
+    }
+
+    private void decryptLog() {
+        LogWriterThread.instance.decryptLog();
     }
 
     @Override

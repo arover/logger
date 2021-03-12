@@ -5,6 +5,7 @@ import android.app.Application;
 import android.content.Context;
 import android.os.Process;
 
+import com.arover.app.logger.Log;
 import com.arover.app.logger.LoggerManager;
 
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.List;
  */
 
 public class App extends Application {
+    private static final String TAG = "App";
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -45,6 +48,7 @@ public class App extends Application {
                 .folder(folderName)
                 .build()
                 .deleteOldLogsDelayed(7);
+        Log.d(TAG,"app is launching...");
     }
 
     public String getCurrentProcessName(Context ctx, int pid){
