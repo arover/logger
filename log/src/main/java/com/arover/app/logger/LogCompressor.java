@@ -39,14 +39,18 @@ class LogCompressor extends Thread {
                 }
             };
 
-            File[] logs = new File(logFolder).listFiles(logFilter);
+            File[] logFiles = new File(logFolder).listFiles(logFilter);
 
-            for(File logFile:logs) {
+            for (File logFile : logFiles) {
 
-                Log.d(TAG, "found log file="+logFile.getName());
+                Log.d(TAG, "found log file=" + logFile.getName());
 
-                if(logFile.getName().endsWith(currentWritingLogFile)){
-                    Log.d(TAG, "skip current log file="+logFile.getName());
+                if (!logFile.getName().endsWith(".log")) {
+                    continue;
+                }
+
+                if (logFile.getName().endsWith(currentWritingLogFile)) {
+                    Log.d(TAG, "skip current log file=" + logFile.getName());
                     continue;
                 }
 
@@ -61,7 +65,7 @@ class LogCompressor extends Thread {
             Log.e(TAG, "findAllOldLogsAndCompress:" + e.getMessage(), e);
         }
         Handler handler = logThreadHandler.get();
-        if(handler!=null){
+        if (handler != null) {
             handler.sendEmptyMessage(LogWriterThread.MSG_COMPRESS_COMPLETED);
         }
     }

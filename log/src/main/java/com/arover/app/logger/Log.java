@@ -28,6 +28,11 @@ public class Log {
     private static LogExecutor logGenerator;
 
 
+    public static void flush(){
+        if (logWriterThread != null) {
+            logWriterThread.flushBuffer();
+        }
+    }
     private static void setLogLevel(Level level) {
         sLogLvlName = level.name();
         sLogLvl = level.code;

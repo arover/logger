@@ -24,6 +24,7 @@ public class LoggerManager {
     private Level level = Level.VERBOSE;
     LogExecutor logExecutor;
     private String logFolderName = "log";
+    private String publicKey;
 
     public static class Builder {
         private final LoggerManager mgr;
@@ -44,6 +45,11 @@ public class LoggerManager {
 
         public Builder enableLogcat(boolean isEnable) {
             mgr.enableLogcat = isEnable;
+            return this;
+        }
+
+        public Builder publicKey(String publicKey) {
+            mgr.publicKey = publicKey;
             return this;
         }
 
@@ -68,6 +74,10 @@ public class LoggerManager {
 
     public boolean enableLogcat() {
         return enableLogcat;
+    }
+
+    public String getPublicKey() {
+        return publicKey;
     }
 
     public void setLogPrinterWorker(LogExecutor logGenerator) {
