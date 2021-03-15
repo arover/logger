@@ -2,6 +2,7 @@ package com.arover.app.logger;
 
 import android.content.Context;
 import android.net.Uri;
+import android.os.Process;
 
 import com.arover.app.Util;
 import com.arover.app.crypto.AesCbcCipher;
@@ -360,5 +361,39 @@ public class Log {
 
     public static File getCurrentLogFile() {
         return logWriterThread.getCurrentFile();
+    }
+
+    /**
+     *  get log folder name by process name,
+     * @param context
+     * @param prefix optional, nullable, default is "logs/app_" , main process log will
+     *               saved in "logs/app_main", process "xxx" 's log will saved in
+     *               "logs/app_xxx" etc.
+     *               you can set it like "Log/app", Log is parent folder name , app is process log
+     *               folder prefix
+     *
+     */
+    public static String getLogFolderByProcess(Context context, String prefix) {
+        String processName = Util.getCurrentProcessName(context, Process.myPid());
+        boolean isMainProcess = context.getPackageName().equals(processName);
+        String defaultPrefix = "logs/app_";
+        if(prefix != null){
+            defaultPrefix = prefix;
+        }
+        String folderName = null;
+        if(isMainProcess){
+            folderName = defaultPrefix + "main";
+        } else {
+            if(processName != null && processName.contains(":")){
+                String[] names = processName.split(":");
+                if(names.length >= 2){
+                    folderName = defaultPrefix +names[1];
+                }
+            }
+            if(folderName ==  null){
+                folderName = defaultPrefix + Process.myPid();
+            }
+        }
+        return folderName;
     }
 }

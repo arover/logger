@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 
 import androidx.annotation.NonNull;
@@ -23,6 +24,9 @@ import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.Log;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 
@@ -98,11 +102,34 @@ public class MainActivity extends AppCompatActivity {
             keypair = RsaCipher.createKeyPair();
             resultTxt.setText(getString(R.string.public_key_is, Util.bytesToHexString(keypair.getPublic().getEncoded())));
             resultTxt2.setText(getString(R.string.private_key_is, Util.bytesToHexString(keypair.getPrivate().getEncoded())));
+            Context appContext = getApplicationContext();
+            new Thread(() -> saveKeypairToFile(appContext, keypair)).start();
+
             android.util.Log.d(TAG, "public key=" + resultTxt.getText());
             android.util.Log.d(TAG, "private key=" + resultTxt2.getText());
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void saveKeypairToFile(Context applicationContext, KeyPair keypair) {
+        File file = new File(applicationContext.getExternalFilesDir(null) + "/keypair.txt");
+        try {
+            OutputStream out = new FileOutputStream(file);
+            out.write("public key:\n".getBytes());
+            out.write(Util.bytesToHexString(keypair.getPublic().getEncoded()).getBytes());
+            out.write("\n\n".getBytes());
+            out.write("private key:\n".getBytes());
+            out.write(Util.bytesToHexString(keypair.getPrivate().getEncoded()).getBytes());
+
+            new Handler(Looper.getMainLooper()).post(() -> {
+                Toast.makeText(applicationContext,
+                        "key file save in:"+file.getAbsolutePath(),
+                        Toast.LENGTH_LONG).show();
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -145,10 +172,14 @@ public class MainActivity extends AppCompatActivity {
             byte[] privateKey = Util.hexStringToBytes(((App) getApplication()).getPrivateKey());
             try {
                 Log.decryptLogFile(appContext, fileUri, privateKey);
-                runOnUiThread(() -> Toast.makeText(appContext, "decrypt log file success", Toast.LENGTH_SHORT).show());
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Toast.makeText(appContext, "decrypt log file success", Toast.LENGTH_SHORT).show();
+                });
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(appContext, "decrypt log file error:" + e.getMessage(), Toast.LENGTH_SHORT).show());
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Toast.makeText(appContext, "decrypt log file error:" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
         }).start();
     }

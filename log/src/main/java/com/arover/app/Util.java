@@ -1,6 +1,10 @@
 package com.arover.app;
 
+import android.app.ActivityManager;
+import android.content.Context;
+
 import java.io.Closeable;
+import java.util.List;
 
 /**
  * @author MZY
@@ -8,6 +12,23 @@ import java.io.Closeable;
  */
 
 public class Util {
+
+    public static String getCurrentProcessName(Context ctx, int pid){
+        ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = am.getRunningAppProcesses();
+        if(runningAppProcesses == null){
+            return null;
+        }
+
+        for(ActivityManager.RunningAppProcessInfo info : runningAppProcesses){
+            if(info.pid == pid){
+                return info.processName;
+            }
+        }
+
+        return null;
+    }
+
     public static String bytesToHexString(byte[] data) {
         if (data == null) return "";
         StringBuilder s = new StringBuilder(data.length * 2);
