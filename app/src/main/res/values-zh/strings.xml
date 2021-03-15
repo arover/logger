@@ -1,9 +1,10 @@
 <resources>
     <string name="app_name">Logger</string>
     <string name="input_file_name">输入文件名</string>
-    <string name="generate_key">生成密钥</string>
-    <string name="choose_log_file_title">选择.zip或者.blog文件</string>
+    <string name="generate_key">生成密钥对</string>
+    <string name="choose_log_file_title">选择.blog文件</string>
     <string name="decrypt_log_file">解密日志</string>
     <string name="choose_file">选择日志文件</string>
+    <string name="load_private_key">读取私钥</string>
 
 </resources>

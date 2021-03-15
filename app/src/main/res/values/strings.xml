@@ -1,14 +1,15 @@
 <resources>
     <string name="app_name">Logger</string>
     <string name="input_file_name">input file name</string>
-    <string name="generate_key">generate key</string>
+    <string name="generate_key">generate keypair</string>
     <string name="public_key_is" translatable="false">public key:\n%1$s</string>
     <string name="private_key_is" translatable="false">private key:\n%1$s</string>
     <string name="choose_log_file_title">Choose a zip or blog file</string>
-    <string name="decrypt_log_file">decrypt log file</string>
+    <string name="decrypt_log_file">decrypt</string>
     <string name="choose_file">Choose File..</string>
     <string name="log" translatable="false">log</string>
     <string name="flush" translatable="false">flush</string>
     <string name="result1" translatable="false">result1</string>
     <string name="result2" translatable="false">result2</string>
+    <string name="load_private_key">load private key</string>
 </resources>
