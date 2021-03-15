@@ -1,5 +1,8 @@
 package com.arover.app;
 
+import java.io.Closeable;
+import java.io.DataOutputStream;
+
 /**
  * @author MZY
  * created at 2021/3/13 17:24
@@ -42,5 +45,13 @@ public class Util {
                 (byte) (value >>> 16),
                 (byte) (value >>> 8),
                 (byte) value};
+    }
+
+    public static void closeQuietly(Closeable closeable) {
+        if(closeable != null){
+            try{
+                closeable.close();
+            }catch(Exception ignored){}
+        }
     }
 }

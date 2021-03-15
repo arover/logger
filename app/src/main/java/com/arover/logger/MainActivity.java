@@ -11,6 +11,7 @@ import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.Log;
 import com.arover.app.logger.LogWriterThread;
 
+import java.io.File;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 
@@ -99,7 +100,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void decryptLog() {
-        LogWriterThread.instance.decryptLog();
+        new Thread(() -> {
+            File file = Log.getCurrentLogFile();
+            android.util.Log.d(TAG,"decryptLog "+file.getAbsolutePath());
+            Log.decryptLogFile(file);
+        }).start();
     }
 
     @Override
@@ -112,6 +117,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         Log.d(TAG,"onPause");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
         Log.flush();
     }
 

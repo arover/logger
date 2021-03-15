@@ -1,11 +1,20 @@
 package com.arover.app.logger;
 
+import com.arover.app.crypto.AesCbcCipher;
 import com.arover.app.logger.LoggerManager.Level;
 
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
+
+import static com.arover.app.Util.bytesToHexString;
+import static com.arover.app.logger.LogWriterThread.ENCRYPT_LOG;
 
 /**
  * File storage logger
@@ -28,11 +37,12 @@ public class Log {
     private static LogExecutor logGenerator;
 
 
-    public static void flush(){
+    public static void flush() {
         if (logWriterThread != null) {
             logWriterThread.flushBuffer();
         }
     }
+
     private static void setLogLevel(Level level) {
         sLogLvlName = level.name();
         sLogLvl = level.code;
@@ -172,12 +182,12 @@ public class Log {
         d(tag, "", t);
     }
 
-    public static void dd(String tag, String format, Object ...args) {
+    public static void dd(String tag, String format, Object... args) {
         if (sLogLvl < Level.DEBUG.code)
             return;
 
-        if(args == null || args.length == 0){
-            d(tag,format);
+        if (args == null || args.length == 0) {
+            d(tag, format);
             return;
         }
 
@@ -254,5 +264,92 @@ public class Log {
         return sw.toString();
     }
 
+    public static void compressAllLogs() {
+        logWriterThread.flushAndStartCompressTask();
+    }
 
+    public static void decryptLogFile(File currentLogFile) {
+        DataInputStream in = null;
+        FileOutputStream out = null;
+        android.util.Log.d(TAG, "read file = " + currentLogFile.getPath());
+        try {
+            File txtLogFile = new File(currentLogFile.getAbsolutePath() + ".txt");
+            in = new DataInputStream(new FileInputStream(currentLogFile));
+            out = new FileOutputStream(txtLogFile);
+            byte[] buf;
+            byte[] iv = new byte[LogWriterThread.ENCRYPT_IV_LEN];
+            byte[] key = new byte[LogWriterThread.ENCRYPT_KEY_LEN];
+            int n;
+            for (; ; ) {
+                int len;
+                try {
+                    len = in.readInt();
+                } catch (Exception e) {
+                    if (!(e instanceof EOFException)) {
+                        android.util.Log.d(TAG, "readInt = ", e);
+                    } else {
+                        android.util.Log.i(TAG, "parse log end.");
+                    }
+                    break;
+                }
+                android.util.Log.d(TAG, "size = " + len);
+                byte mode = in.readByte();
+                android.util.Log.v(TAG, "mode = " + mode);
+                if (mode == ENCRYPT_LOG) {
+                    n = in.read(iv);
+                    android.util.Log.v(TAG, "iv = " + bytesToHexString(iv));
+                    if (n <= 0) {
+                        return;
+                    }
+                    n = in.read(key);
+                    android.util.Log.v(TAG, "iv = " + bytesToHexString(key));
+                    if (n <= 0) {
+                        return;
+                    }
+                }
+                buf = new byte[len];
+                n = in.read(buf);
+                if (n != len) {
+                    android.util.Log.e(TAG, "encrypted log length is not correct, read len=" + n + ",len=" + len);
+                    break;
+                }
+                if (mode == ENCRYPT_LOG) {
+                    byte[] decryptLog = null;
+                    try {
+                        decryptLog = AesCbcCipher.decrypt(buf, key, iv);
+                        android.util.Log.v(TAG, "write decryptLog = " + bytesToHexString(decryptLog));
+                        out.write(decryptLog);
+                    } catch (Exception e) {
+                        android.util.Log.e(TAG, "decrypt log error", e);
+                        android.util.Log.i(TAG, "decryptLog failed = " + bytesToHexString(buf));
+                        out.write(buf);
+                    }
+                } else {
+                    android.util.Log.v(TAG, "write plain = " + bytesToHexString(buf));
+                    out.write(buf);
+                }
+            }
+            out.flush();
+        } catch (Exception e) {
+            android.util.Log.e(TAG, "parse encrypted log error:", e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+
+    }
+
+    public static File getCurrentLogFile() {
+        return logWriterThread.getCurrentFile();
+    }
 }
