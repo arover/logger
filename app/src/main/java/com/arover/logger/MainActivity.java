@@ -24,7 +24,6 @@ public class MainActivity extends AppCompatActivity {
     private byte[] encrypteInputText;
     private TextView resultTxt;
     private TextView resultTxt2;
-    private TextView flushBtn;
 
 
     @Override
@@ -37,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         textInput = (EditText)findViewById(R.id.text);
         resultTxt = (TextView)findViewById(R.id.result);
         resultTxt2 = (TextView)findViewById(R.id.result2);
-        flushBtn = (TextView)findViewById(R.id.flush_btn);
+
         findViewById(R.id.decrypt_file).setOnClickListener(v -> {
             decryptLog();
         });
@@ -103,7 +102,8 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             File file = Log.getCurrentLogFile();
             android.util.Log.d(TAG,"decryptLog "+file.getAbsolutePath());
-            Log.decryptLogFile(file);
+            byte[] privateKey = Util.hexStringToBytes(((App)getApplication()).getPrivateKey());
+            Log.decryptLogFile(file, privateKey);
         }).start();
     }
 

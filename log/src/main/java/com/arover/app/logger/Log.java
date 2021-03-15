@@ -1,6 +1,7 @@
 package com.arover.app.logger;
 
 import com.arover.app.crypto.AesCbcCipher;
+import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.LoggerManager.Level;
 
 import java.io.DataInputStream;
@@ -268,7 +269,7 @@ public class Log {
         logWriterThread.flushAndStartCompressTask();
     }
 
-    public static void decryptLogFile(File currentLogFile) {
+    public static void decryptLogFile(File currentLogFile,byte[] privateKey) {
         DataInputStream in = null;
         FileOutputStream out = null;
         android.util.Log.d(TAG, "read file = " + currentLogFile.getPath());
@@ -316,8 +317,16 @@ public class Log {
                 if (mode == ENCRYPT_LOG) {
                     byte[] decryptLog = null;
                     try {
-                        decryptLog = AesCbcCipher.decrypt(buf, key, iv);
+                        byte[] decryptKey = RsaCipher.decrypt(key, privateKey);
+                        byte[] decryptIv = RsaCipher.decrypt(iv, privateKey);
+
+                        android.util.Log.d(TAG, "decryptKey" + bytesToHexString(decryptKey));
+                        android.util.Log.d(TAG, "decryptKey" + bytesToHexString(decryptIv));
+
+                        decryptLog = AesCbcCipher.decrypt(buf, decryptKey, decryptIv);
+
                         android.util.Log.v(TAG, "write decryptLog = " + bytesToHexString(decryptLog));
+
                         out.write(decryptLog);
                     } catch (Exception e) {
                         android.util.Log.e(TAG, "decrypt log error", e);
