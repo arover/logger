@@ -1,6 +1,5 @@
 package com.arover.app.logger;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Environment;
 import android.os.Handler;
@@ -48,12 +47,12 @@ public class LoggerManager {
             return this;
         }
 
-        public Builder publicKey(String publicKey) {
+        public Builder encryptWithPublicKey(String publicKey) {
             mgr.publicKey = publicKey;
             return this;
         }
 
-        public Builder logGenerator(LogExecutor executor) {
+        public Builder logTaskExecutor(LogExecutor executor) {
             mgr.logExecutor = executor;
             return this;
         }

@@ -1,10 +1,5 @@
 package com.arover.app.logger;
 
-import com.arover.app.logger.Log;
-import com.arover.app.logger.LoggerManager;
-
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 

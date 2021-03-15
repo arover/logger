@@ -33,14 +33,12 @@ public class LogWriterThread extends HandlerThread {
     static final int MSG_COMPRESS_COMPLETED = 3;
     private static final int MSG_FORCE_FLUSH = 4;
     private static final int MSG_INCREASE_LOG_NO = 5;
-
     private static final long FLUSH_LOG_DELAY = 500;
-    private static final long CLOSE_FILE_WRITER_DELAY = 5500;
 
-    private static final int BUFFER_SIZE = 1024 * 16;
+    public static final int BUFFER_SIZE = 1024 * 16;
     private static final ByteBuffer sLogBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private static final long MAX_LOG_FILE_SIZE = 1024 * 1024 * 1024;
-    private static final int FLUSH_THRESHOLD = BUFFER_SIZE/4;
+    private static final long MAX_LOG_FILE_SIZE = 1024 * 1024 * 10; //10mb
+    private static final int FLUSH_THRESHOLD = BUFFER_SIZE/4;// write log if size > 4kb
     static final byte ENCRYPT_LOG = 1;
     static final byte PLAIN_LOG = 0;
     private final LoggerManager logManager;
@@ -55,20 +53,15 @@ public class LogWriterThread extends HandlerThread {
     private File currentLogFile;
     private int logFileNo = 0;
     private String currentLogFileName;
-    private byte[] key = new byte[32];
-    private byte[] nonce = "12345678".getBytes();
-
 
     LogWriterThread(LoggerManager loggerManager) {
         super("LogWriter", Process.THREAD_PRIORITY_BACKGROUND);
         this.logManager = loggerManager;
         instance = this;
 
-        if(loggerManager.getPublicKey() != null){
+        if(loggerManager.getPublicKey() != null && loggerManager.getPublicKey().trim().length() > 0){
             publicKey=hexStringToBytes(loggerManager.getPublicKey());
         }
-        byte[] bytes = "private static final StringBuffer sLogBuffer = new StringBuffer();".getBytes();
-        System.arraycopy(bytes, 0, key, 0, 32);
 
     }
 
@@ -87,7 +80,7 @@ public class LogWriterThread extends HandlerThread {
                     case MSG_LOG:
                         String log = (String) msg.obj;
                         byte[] bytes = log.getBytes();
-                        android.util.Log.d(TAG, "put log" + log + "，bytes=" + bytesToHexString(bytes));
+//                        android.util.Log.d(TAG, "put log" + log + "，bytes=" + bytesToHexString(bytes));
 
                         if(sLogBuffer.limit() - sLogBuffer.position() > bytes.length){
                             sLogBuffer.put(log.getBytes());
@@ -98,28 +91,29 @@ public class LogWriterThread extends HandlerThread {
                         break;
 
                     case MSG_FLUSH:
-                        android.util.Log.d(TAG, "flush log begin");
+//                        android.util.Log.d(TAG, "MSG_FLUSH flush log begin");
                         removeMessages(MSG_FLUSH);
                         removeMessages(MSG_CLOSE);
                         writeLog(false);
-                        android.util.Log.d(TAG, "flush log done");
+//                        android.util.Log.d(TAG, "flush log done");
                         break;
                     case MSG_FORCE_FLUSH:
-                        android.util.Log.d(TAG, "flush log begin");
+//                        android.util.Log.d(TAG, "MSG_FORCE_FLUSH flush log begin");
                         removeMessages(MSG_FLUSH);
                         removeMessages(MSG_FORCE_FLUSH);
                         removeMessages(MSG_CLOSE);
                         writeLog(true);
-                        android.util.Log.d(TAG, "flush log done");
+//                        android.util.Log.d(TAG, "flush log done");
                         break;
                     case MSG_INCREASE_LOG_NO:
-                        android.util.Log.d(TAG, "close log write");
+                        android.util.Log.d(TAG, "MSG_INCREASE_LOG_NO");
                         writeLog(true);
                         closeWriter();
+                        // add file no to start new filer writer;
                         logFileNo+=1;
                         break;
                     case MSG_CLOSE:
-                        android.util.Log.d(TAG, "close log write");
+//                        android.util.Log.d(TAG, "close log write");
                         closeWriter();
                         break;
                     case MSG_COMPRESS_COMPLETED:
@@ -162,17 +156,23 @@ public class LogWriterThread extends HandlerThread {
             sLogBuffer.clear();
             return;
         }
+        byte mode = (byte) (publicKey == null? 0:1);
+        boolean doWriteNow;
+        if(mode == ENCRYPT_LOG) {
+            doWriteNow = sLogBuffer.position() > FLUSH_THRESHOLD || forceFlush;
+        } else {
+            // we write plain log immediately;
+            doWriteNow = true;
+        }
 
-        if (sLogBuffer.position() > FLUSH_THRESHOLD
-            || (forceFlush && sLogBuffer.position() > 0)) {
-
-            android.util.Log.d(TAG, "write len hex= " + sLogBuffer.toString());
+        if (sLogBuffer.position() > 0 && doWriteNow) {
+            android.util.Log.i(TAG, "Log Buffer flushed:n=" + sLogBuffer.position());
             int n = sLogBuffer.position();
             byte[] temp = new byte[n];
             sLogBuffer.flip();
             sLogBuffer.get(temp);
             sLogBuffer.clear();
-            byte mode = (byte) (publicKey == null? 0:1);
+
             if(mode == ENCRYPT_LOG) {
                 writeEncryptedLog(temp);
             } else {
@@ -186,12 +186,7 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private void writePlainLog(byte[] temp) {
-        byte[] len = intToBytes(temp.length);
-        android.util.Log.d(TAG, "write len hex= " + bytesToHexString(len)
-                + ",len = " + temp.length + ",log hex=" + bytesToHexString(temp));
         try {
-            fileLogWriter.write(len);
-            fileLogWriter.write(PLAIN_LOG);
             fileLogWriter.write(temp);
             fileLogWriter.flush();
         } catch (Exception e) {
@@ -215,13 +210,13 @@ public class LogWriterThread extends HandlerThread {
         byte[] encryptKey = RsaCipher.encrypt(key, publicKey);
         byte[] encryptIv = RsaCipher.encrypt(iv, publicKey);
 
-        android.util.Log.v(TAG, "mode = " + mode);
-        android.util.Log.v(TAG, "iv = " + bytesToHexString(iv));
-        android.util.Log.v(TAG, "key = " + bytesToHexString(key));
-        android.util.Log.d(TAG, "encryptIv.length = " + encryptIv.length);
-        android.util.Log.d(TAG, "encryptKey.length = " + encryptKey.length);
-        android.util.Log.d(TAG, "write len hex= " + bytesToHexString(len)
-                + ",len = " + encryptedLog.length + ",log hex=" + bytesToHexString(encryptedLog));
+//        android.util.Log.v(TAG, "mode = " + mode);
+//        android.util.Log.v(TAG, "iv = " + bytesToHexString(iv));
+//        android.util.Log.v(TAG, "key = " + bytesToHexString(key));
+//        android.util.Log.d(TAG, "encryptIv.length = " + encryptIv.length);
+//        android.util.Log.d(TAG, "encryptKey.length = " + encryptKey.length);
+//        android.util.Log.d(TAG, "write len hex= " + bytesToHexString(len)
+//                + ",len = " + encryptedLog.length + ",log hex=" + bytesToHexString(encryptedLog));
 
         try {
             fileLogWriter.write(len);
@@ -256,11 +251,11 @@ public class LogWriterThread extends HandlerThread {
             // find latest log file no.
             while(true) {
                 currentLogFileName = genLogFileName();
-                android.util.Log.v(TAG, "createLogWriter file=" + currentLogFileName);
+//                android.util.Log.v(TAG, "createLogWriter file=" + currentLogFileName);
                 String zippedLog = currentLogFileName.replace(".log",".zip");
                 File zippedFile = new File(Log.sLogDir,zippedLog);
                 if(zippedFile.exists()) {
-                    android.util.Log.v(TAG, "zippedLog file exist=" + zippedLog);
+//                    android.util.Log.v(TAG, "zippedLog file exist=" + zippedLog);
                     logFileNo++;
                 } else {
                     break;
@@ -277,7 +272,8 @@ public class LogWriterThread extends HandlerThread {
                 //check uncompressed logs after create new log file.
                 doCheckUncompressedLogs = true;
             }
-            //todo check existing logfile size and update logfile No.
+
+            android.util.Log.d(TAG, "currentLogFileName=" + currentLogFileName);
 
             fileLogWriter = new DataOutputStream(new FileOutputStream(currentLogFile, true));
 
@@ -303,16 +299,25 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private String genLogFileName() {
+        String prefix="";
+        // add prefix to encrypted log file name. avoid write plain log
+        // to same file after app changed log mode.
+        if(isEncryptMode()){
+            prefix = "s_";
+        }
         Calendar cal = Calendar.getInstance();
-        return cal.get(Calendar.YEAR)
+        return prefix + cal.get(Calendar.YEAR)
                 + "-" + (cal.get(Calendar.MONTH) + 1)
                 + ("-") + cal.get(Calendar.DAY_OF_MONTH)
                 + "-" + logFileNo + ".log";
     }
 
+    private boolean isEncryptMode() {
+        return publicKey != null;
+    }
+
     private void findAllOldLogsAndCompress() {
         if (isCompressing) return;
-        android.util.Log.d(TAG, "findAllOldLogsAndCompress currentLogFileName=" + currentLogFileName);
 
         logCompressor = new LogCompressor(handler, logManager.getLogDirFullPath(), currentLogFileName);
         logCompressor.start();

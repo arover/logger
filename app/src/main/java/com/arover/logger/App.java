@@ -4,7 +4,7 @@ import android.app.ActivityManager;
 import android.app.Application;
 import android.content.Context;
 import android.os.Process;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.arover.app.logger.Log;
 import com.arover.app.logger.LoggerManager;
@@ -66,7 +66,7 @@ public class App extends Application {
         new LoggerManager.Builder(this)
                 .enableLogcat(BuildConfig.DEBUG)
                 .level(BuildConfig.DEBUG ? LoggerManager.Level.VERBOSE: LoggerManager.Level.DEBUG)
-                .publicKey(publicKey)
+//                .encryptWithPublicKey(publicKey)
                 .folder(folderName)
                 .build()
                 .deleteOldLogsDelayed(7);

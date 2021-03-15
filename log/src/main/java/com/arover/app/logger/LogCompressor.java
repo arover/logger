@@ -41,9 +41,11 @@ class LogCompressor extends Thread {
 
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
-            for (File logFile : logFiles) {
+            if(logFiles == null){
+                return;
+            }
 
-                Log.d(TAG, "found log file=" + logFile.getName());
+            for (File logFile : logFiles) {
 
                 if (!logFile.getName().endsWith(".log")) {
                     continue;
@@ -54,7 +56,8 @@ class LogCompressor extends Thread {
                     continue;
                 }
 
-                Log.d(TAG, "compressing...");
+                Log.d(TAG, "found log file=" + logFile.getName() +" compressing...");
+
                 zip(logFile.getName(), logFile.getName().replaceFirst("\\.log", ".zip"));
 
                 if (!logFile.delete()) {

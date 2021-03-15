@@ -1,5 +1,9 @@
 package com.arover.app.logger;
 
+import android.content.Context;
+import android.net.Uri;
+
+import com.arover.app.Util;
 import com.arover.app.crypto.AesCbcCipher;
 import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.LoggerManager.Level;
@@ -7,9 +11,7 @@ import com.arover.app.logger.LoggerManager.Level;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
@@ -269,13 +271,14 @@ public class Log {
         logWriterThread.flushAndStartCompressTask();
     }
 
-    public static void decryptLogFile(File currentLogFile,byte[] privateKey) {
+    public static void decryptLogFile(Context context, Uri uri, byte[] privateKey) throws Exception {
         DataInputStream in = null;
         FileOutputStream out = null;
-        android.util.Log.d(TAG, "read file = " + currentLogFile.getPath());
+        android.util.Log.d(TAG, "read file = " + uri.getPath());
         try {
-            File txtLogFile = new File(currentLogFile.getAbsolutePath() + ".txt");
-            in = new DataInputStream(new FileInputStream(currentLogFile));
+            File txtLogFile = new File(context.getExternalFilesDir(null),"/output.log");
+//            File txtLogFile = new File(uri.getAbsolutePath() + ".txt");
+            in = new DataInputStream(context.getContentResolver().openInputStream(uri));
             out = new FileOutputStream(txtLogFile);
             byte[] buf;
             byte[] iv = new byte[LogWriterThread.ENCRYPT_IV_LEN];
@@ -288,44 +291,49 @@ public class Log {
                 } catch (Exception e) {
                     if (!(e instanceof EOFException)) {
                         android.util.Log.d(TAG, "readInt = ", e);
+                        throw new IllegalStateException("read log length data error.",e);
                     } else {
                         android.util.Log.i(TAG, "parse log end.");
                     }
                     break;
                 }
                 android.util.Log.d(TAG, "size = " + len);
+                if(len > LogWriterThread.BUFFER_SIZE){
+                    android.util.Log.e(TAG, "invalid log length, are you sure log file is right??? = " + len);
+                    return;
+                }
                 byte mode = in.readByte();
                 android.util.Log.v(TAG, "mode = " + mode);
                 if (mode == ENCRYPT_LOG) {
                     n = in.read(iv);
                     android.util.Log.v(TAG, "iv = " + bytesToHexString(iv));
-                    if (n <= 0) {
-                        return;
+                    if (n != iv.length) {
+                        throw new IllegalStateException("read iv data error n != iv.length.");
                     }
                     n = in.read(key);
                     android.util.Log.v(TAG, "iv = " + bytesToHexString(key));
-                    if (n <= 0) {
-                        return;
+                    if (n != key.length) {
+                        throw new IllegalStateException("read key data error n != key.length.");
                     }
                 }
                 buf = new byte[len];
                 n = in.read(buf);
                 if (n != len) {
                     android.util.Log.e(TAG, "encrypted log length is not correct, read len=" + n + ",len=" + len);
-                    break;
+                    throw new IllegalStateException("read log data error, read log length is not equals len.");
                 }
                 if (mode == ENCRYPT_LOG) {
-                    byte[] decryptLog = null;
+                    byte[] decryptLog;
                     try {
                         byte[] decryptKey = RsaCipher.decrypt(key, privateKey);
                         byte[] decryptIv = RsaCipher.decrypt(iv, privateKey);
 
-                        android.util.Log.d(TAG, "decryptKey" + bytesToHexString(decryptKey));
-                        android.util.Log.d(TAG, "decryptKey" + bytesToHexString(decryptIv));
+//                        android.util.Log.d(TAG, "decryptKey" + bytesToHexString(decryptKey));
+//                        android.util.Log.d(TAG, "decryptKey" + bytesToHexString(decryptIv));
 
                         decryptLog = AesCbcCipher.decrypt(buf, decryptKey, decryptIv);
 
-                        android.util.Log.v(TAG, "write decryptLog = " + bytesToHexString(decryptLog));
+//                        android.util.Log.v(TAG, "write decryptLog = " + bytesToHexString(decryptLog));
 
                         out.write(decryptLog);
                     } catch (Exception e) {
@@ -334,26 +342,18 @@ public class Log {
                         out.write(buf);
                     }
                 } else {
-                    android.util.Log.v(TAG, "write plain = " + bytesToHexString(buf));
+//                    android.util.Log.v(TAG, "write plain = " + bytesToHexString(buf));
                     out.write(buf);
                 }
             }
             out.flush();
+
         } catch (Exception e) {
             android.util.Log.e(TAG, "parse encrypted log error:", e);
+            throw e;
         } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException ignored) {
-                }
-            }
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException ignored) {
-                }
-            }
+            Util.closeQuietly(in);
+            Util.closeQuietly(out);
         }
 
     }
