@@ -1,4 +1,4 @@
-package com.arover.app;
+package com.arover.app.util;
 
 import android.app.ActivityManager;
 import android.content.Context;
@@ -11,7 +11,7 @@ import java.util.List;
  * created at 2021/3/13 17:24
  */
 
-public class Util {
+public class DataUtil {
 
     public static String getCurrentProcessName(Context ctx, int pid){
         ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
@@ -67,11 +67,5 @@ public class Util {
                 (byte) value};
     }
 
-    public static void closeQuietly(Closeable closeable) {
-        if(closeable != null){
-            try{
-                closeable.close();
-            }catch(Exception ignored){}
-        }
-    }
+
 }

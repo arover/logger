@@ -5,9 +5,10 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
 
-import com.arover.app.Util;
+import com.arover.app.util.DataUtil;
 import com.arover.app.crypto.AesCbcCipher;
 import com.arover.app.crypto.RsaCipher;
+import com.arover.app.util.IoUtil;
 
 import java.io.Closeable;
 import java.io.DataOutputStream;
@@ -16,9 +17,8 @@ import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Calendar;
 
-import static com.arover.app.Util.bytesToHexString;
-import static com.arover.app.Util.hexStringToBytes;
-import static com.arover.app.Util.intToBytes;
+import static com.arover.app.util.DataUtil.hexStringToBytes;
+import static com.arover.app.util.DataUtil.intToBytes;
 
 
 public class LogWriterThread extends HandlerThread {
@@ -240,7 +240,7 @@ public class LogWriterThread extends HandlerThread {
 
     private void createLogWriter() {
 
-        Util.closeQuietly(fileLogWriter);
+        IoUtil.closeQuietly(fileLogWriter);
 
         File folder = new File(Log.sLogDir);
         if (!folder.exists() && !folder.mkdirs()) {

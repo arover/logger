@@ -4,10 +4,11 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Process;
 
-import com.arover.app.Util;
+import com.arover.app.util.DataUtil;
 import com.arover.app.crypto.AesCbcCipher;
 import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.LoggerManager.Level;
+import com.arover.app.util.IoUtil;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -17,7 +18,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
 
-import static com.arover.app.Util.bytesToHexString;
+import static com.arover.app.util.DataUtil.bytesToHexString;
 import static com.arover.app.logger.LogWriterThread.ENCRYPT_LOG;
 
 /**
@@ -353,8 +354,8 @@ public class Log {
             android.util.Log.e(TAG, "parse encrypted log error:", e);
             throw e;
         } finally {
-            Util.closeQuietly(in);
-            Util.closeQuietly(out);
+            IoUtil.closeQuietly(in);
+            IoUtil.closeQuietly(out);
         }
 
     }
@@ -374,7 +375,7 @@ public class Log {
      *
      */
     public static String getLogFolderByProcess(Context context, String prefix) {
-        String processName = Util.getCurrentProcessName(context, Process.myPid());
+        String processName = DataUtil.getCurrentProcessName(context, Process.myPid());
         boolean isMainProcess = context.getPackageName().equals(processName);
         String defaultPrefix = "logs/app_";
         if(prefix != null){

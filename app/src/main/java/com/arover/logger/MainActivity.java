@@ -11,9 +11,10 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.arover.app.Util;
+import com.arover.app.util.DataUtil;
 import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.Log;
+import com.arover.app.util.IoUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -118,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                         .subscribe((byte[] key) -> {
                             privateKey = key;
                             android.util.Log.i(TAG,
-                                    "loadPrivateFile key=" + Util.bytesToHexString(privateKey));
+                                    "loadPrivateFile key=" + DataUtil.bytesToHexString(privateKey));
                             Toast.makeText(getApplicationContext(), "load private key success",
                                     Toast.LENGTH_SHORT).show();
                         }, e -> Toast.makeText(getApplicationContext(), e.getMessage(),
@@ -150,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 emitter.onError(e);
             } finally {
-                Util.closeQuietly(in);
+                IoUtil.closeQuietly(in);
             }
         });
     }
@@ -159,9 +160,9 @@ public class MainActivity extends AppCompatActivity {
         try {
             keypair = RsaCipher.createKeyPair();
             resultTxt.setText(getString(R.string.public_key_is,
-                    Util.bytesToHexString(keypair.getPublic().getEncoded())));
+                    DataUtil.bytesToHexString(keypair.getPublic().getEncoded())));
             resultTxt2.setText(getString(R.string.private_key_is,
-                    Util.bytesToHexString(keypair.getPrivate().getEncoded())));
+                    DataUtil.bytesToHexString(keypair.getPrivate().getEncoded())));
             Context appContext = getApplicationContext();
             privateKey = keypair.getPrivate().getEncoded();
             autoClean(
@@ -204,11 +205,11 @@ public class MainActivity extends AppCompatActivity {
             File privateKeyFile = new File(applicationContext.getExternalFilesDir(null) +
                     "/log_private.key");
             File publicKeyFile = new File(applicationContext.getExternalFilesDir(null)
-                    + "/log_public.key");
+                    + "/log_public_key_hex_str.txt");
             OutputStream publicFileOut = null, privateFileOut = null;
             try {
                 publicFileOut = new FileOutputStream(publicKeyFile);
-                publicFileOut.write(keypair.getPublic().getEncoded());
+                publicFileOut.write(DataUtil.bytesToHexString(keypair.getPublic().getEncoded()).getBytes());
                 publicFileOut.flush();
 
                 privateFileOut = new FileOutputStream(privateKeyFile);
@@ -223,8 +224,8 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                Util.closeQuietly(publicFileOut);
-                Util.closeQuietly(privateFileOut);
+                IoUtil.closeQuietly(publicFileOut);
+                IoUtil.closeQuietly(privateFileOut);
             }
         });
     }
@@ -235,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             encryptedInputText = RsaCipher
                     .encrypt(input.getBytes(), keypair.getPublic().getEncoded());
-            resultTxt.setText(Util.bytesToHexString(encryptedInputText));
+            resultTxt.setText(DataUtil.bytesToHexString(encryptedInputText));
             android.util.Log.d(TAG, "encryptTxt len=" + encryptedInputText.length);
         } catch (Exception e) {
             android.util.Log.d(TAG, "encryptTxt=" + input, e);

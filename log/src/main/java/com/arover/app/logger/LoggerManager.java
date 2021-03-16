@@ -184,16 +184,22 @@ public class LoggerManager {
      * 删除N天前日志
      *  using executor
      */
-    public void deleteOldLogs(int days) {
-        if (days <= 0) {
+    public void deleteOldLogs(int logFileDays) {
+        final int days;
+        if (logFileDays <= 0) {
             days = DEFAULT_MAX_LOG_IN_DAYS;
+        } else {
+            days = logFileDays;
         }
         if (logFolderName == null) {
-            throw new IllegalStateException("storage folder is null.");
+            android.util.Log.d(TAG,"storage folder is null.");
+            return;
         }
 
         if(logExecutor != null) {
             logExecutor.execute(new DeleteLogTask(logFolderName, days));
+        } else {
+            new Thread(new DeleteLogTask(logFolderName, days)).start();
         }
     }
 
@@ -202,19 +208,15 @@ public class LoggerManager {
      * operation post delayed in 3 seconds to avoid occupy cpu time for app launch.
      * @param days
      */
-    public void deleteOldLogsDelayed(int days) {
-        new Handler(Looper.getMainLooper()).postDelayed(createDeleteLogTask(days), DELETE_LOG_DELAY);
-    }
-
-    public Runnable createDeleteLogTask(int days) {
-        if (days <= 0) {
-            days = DEFAULT_MAX_LOG_IN_DAYS;
-        }
-        if (logFolderName == null) {
-            throw new IllegalStateException("log folder name is null.");
-        }
-
-        return new DeleteLogTask(logFolderName, days);
+    public void deleteOldLogsDelayed(final int days) {
+        new Handler(Looper.getMainLooper()).postDelayed(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        deleteOldLogs(days);
+                    }
+                },
+                DELETE_LOG_DELAY);
     }
 
     private static class DeleteLogTask implements Runnable {

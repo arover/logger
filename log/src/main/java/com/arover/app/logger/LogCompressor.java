@@ -2,7 +2,8 @@ package com.arover.app.logger;
 
 import android.os.Handler;
 
-import com.arover.app.Util;
+import com.arover.app.util.DataUtil;
+import com.arover.app.util.IoUtil;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -90,10 +91,10 @@ class LogCompressor extends Thread {
         } catch (Exception e) {
             Log.e(TAG, "zip error:", e);
         } finally {
-            Util.closeQuietly(fi);
-            Util.closeQuietly(origin);
-            Util.closeQuietly(out);
-            Util.closeQuietly(dest);
+            IoUtil.closeQuietly(fi);
+            IoUtil.closeQuietly(origin);
+            IoUtil.closeQuietly(out);
+            IoUtil.closeQuietly(dest);
         }
     }
 }
