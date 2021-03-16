@@ -16,7 +16,7 @@ public class LoggerManager {
     private static final String TAG = "LoggerManager";
     private static final int DEFAULT_MAX_LOG_IN_DAYS = 10;
     private static final long DELETE_LOG_DELAY = 20 * 1000;
-    public static final String DEFAULT_CRASH_FOLDER_NAME = "log_crash";
+    public static final String DEFAULT_CRASH_FOLDER_NAME = "logs/log_crash";
     private final Context context;
     private String logDirFullPath;
     private boolean enableLogcat;
