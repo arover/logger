@@ -35,10 +35,10 @@ public class LogWriterThread extends HandlerThread {
     private static final int MSG_INCREASE_LOG_NO = 5;
     private static final long FLUSH_LOG_DELAY = 500;
 
-    public static final int BUFFER_SIZE = 1024 * 16;
+    public static final int BUFFER_SIZE = 1024 * 32;
     private static final ByteBuffer sLogBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private static final long MAX_LOG_FILE_SIZE = 1024 * 1024 * 10; //10mb
-    private static final int FLUSH_THRESHOLD = BUFFER_SIZE/4;// write log if size > 4kb
+    private static final int FLUSH_THRESHOLD = BUFFER_SIZE/8;// write log if size > 4kb
     static final byte ENCRYPT_LOG = 1;
     static final byte PLAIN_LOG = 0;
     private final LoggerManager logManager;
