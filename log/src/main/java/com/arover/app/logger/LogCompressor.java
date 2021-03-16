@@ -1,7 +1,8 @@
 package com.arover.app.logger;
 
 import android.os.Handler;
-import android.util.Log;
+
+import com.arover.app.Util;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -32,12 +33,7 @@ class LogCompressor extends Thread {
     @Override
     public void run() {
         try {
-            FileFilter logFilter = new FileFilter() {
-                @Override
-                public boolean accept(File pathname) {
-                    return pathname.getName().contains("log");
-                }
-            };
+            FileFilter logFilter = pathname -> pathname.getName().endsWith(".log");
 
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
@@ -47,18 +43,14 @@ class LogCompressor extends Thread {
 
             for (File logFile : logFiles) {
 
-                if (!logFile.getName().endsWith(".log")) {
-                    continue;
-                }
-
                 if (logFile.getName().endsWith(currentWritingLogFile)) {
-                    Log.d(TAG, "skip current log file=" + logFile.getName());
+                    Log.v(TAG, "skip current log file=" + logFile.getName());
                     continue;
                 }
 
                 Log.d(TAG, "found log file=" + logFile.getName() +" compressing...");
 
-                zip(logFile.getName(), logFile.getName().replaceFirst("\\.log", ".zip"));
+                zipFile(logFile.getName(), logFile.getName().replaceFirst("\\.log", ".zip"));
 
                 if (!logFile.delete()) {
                     Log.w(TAG, "failed to delete old log:" + logFile.getName());
@@ -73,7 +65,7 @@ class LogCompressor extends Thread {
         }
     }
 
-    private void zip(String filename, String zipFileName) {
+    private void zipFile(String filename, String zipFileName) {
         Log.d(TAG, "zip filename:" + filename + ",zip file name:" + zipFileName);
         FileOutputStream dest = null;
         ZipOutputStream out = null;
@@ -82,7 +74,7 @@ class LogCompressor extends Thread {
         try {
             dest = new FileOutputStream(logFolder + File.separator + zipFileName);
             out = new ZipOutputStream(new BufferedOutputStream(dest));
-            byte data[] = new byte[BUFFER_SIZE];
+            byte[] data = new byte[BUFFER_SIZE];
 
             fi = new FileInputStream(logFolder + File.separator + filename);
             origin = new BufferedInputStream(fi, BUFFER_SIZE);
@@ -94,30 +86,14 @@ class LogCompressor extends Thread {
             while ((count = origin.read(data, 0, BUFFER_SIZE)) != -1) {
                 out.write(data, 0, count);
             }
-
+            out.closeEntry();
         } catch (Exception e) {
             Log.e(TAG, "zip error:", e);
         } finally {
-
-            try {
-                if (fi != null) fi.close();
-            } catch (Exception ignored) {
-            }
-
-            try {
-                if (origin != null) origin.close();
-            } catch (Exception ignored) {
-            }
-
-            try {
-                if (out != null) out.close();
-            } catch (Exception ignored) {
-            }
-
-            try {
-                if (dest != null) dest.close();
-            } catch (Exception ignored) {
-            }
+            Util.closeQuietly(fi);
+            Util.closeQuietly(origin);
+            Util.closeQuietly(out);
+            Util.closeQuietly(dest);
         }
     }
 }
