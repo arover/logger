@@ -29,7 +29,7 @@ public class Log {
 
     private static final String TAG = "Log";
 
-    public static File rootDir;
+    public static String rootDir;
     public static String crashLogDir;
 
     static LogWriterThread logWriterThread;
@@ -40,6 +40,7 @@ public class Log {
     static String sLogDir;
     static boolean sInitialized;
     private static LogExecutor logGenerator;
+    volatile static OnLogCompressDoneListener onLogCompressListener;
 
 
     public static void flush() {
@@ -60,7 +61,7 @@ public class Log {
     /**
      * init file logger with level and debug mode.
      */
-    public static void init(LoggerManager manager) {
+    static void init(LoggerManager manager) {
         setLogDir(manager.getLogDirFullPath());
         setLogLevel(manager.getLevel());
         sLogcatEnabled = manager.enableLogcat();
@@ -78,7 +79,7 @@ public class Log {
                 .getLogDirFullPath());
     }
 
-    public static File getRootDir() {
+    public static String getRootDir() {
         return rootDir;
     }
 
@@ -103,9 +104,9 @@ public class Log {
     }
 
     public static void f(String tag, String msg) {
-
-        if (sLogcatEnabled) android.util.Log.wtf(tag, msg);
-        writeToFile(tag + " " + msg, Level.FATAL);
+        String logmsg = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.wtf(tag, logmsg);
+        writeToFile(tag + " " + logmsg, Level.FATAL);
     }
 
     public static void e(String tag, Throwable t) {
@@ -128,9 +129,10 @@ public class Log {
     public static void e(String tag, String msg) {
         if (sLogLvl < Level.ERROR.code) return;
 
-        if (sLogcatEnabled) android.util.Log.e(tag, msg);
+        String logmsg = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.e(tag, logmsg);
 
-        writeToFile(tag + " " + msg, Level.ERROR);
+        writeToFile(tag + " " + logmsg, Level.ERROR);
     }
 
     public static void w(String tag, Throwable t) {
@@ -150,7 +152,8 @@ public class Log {
     public static void w(String tag, String msg) {
         if (sLogLvl < Level.WARN.code) return;
 
-        if (sLogcatEnabled) android.util.Log.w(tag, msg);
+        String logmsg = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.w(tag, logmsg);
 
         writeToFile(tag + " " + msg, Level.WARN);
     }
@@ -176,9 +179,9 @@ public class Log {
         if (sLogLvl < Level.INFO.code) {
             return;
         }
-
-        if (sLogcatEnabled) android.util.Log.i(tag, msg);
-        writeToFile(tag + " " + msg, Level.INFO);
+        String logmsg = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.i(tag, logmsg);
+        writeToFile(tag + " " + logmsg, Level.INFO);
     }
 
     public static void d(String tag, Throwable t) {
@@ -212,8 +215,9 @@ public class Log {
 
     public static void d(String tag, String msg) {
         if (sLogLvl < Level.DEBUG.code) return;
-        if (sLogcatEnabled) android.util.Log.d(tag, msg);
-        writeToFile(tag + " " + msg, Level.DEBUG);
+        String logmsg = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.d(tag, logmsg);
+        writeToFile(tag + " " + logmsg, Level.DEBUG);
     }
 
     public static void v(String tag, Throwable t) {
@@ -234,9 +238,10 @@ public class Log {
 
     public static void v(String tag, String msg) {
         if (sLogLvl < Level.VERBOSE.code) return;
-        if (sLogcatEnabled) android.util.Log.v(tag, msg);
+        String logmsg = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.v(tag, logmsg);
 
-        writeToFile(tag + " " + msg, Level.VERBOSE);
+        writeToFile(tag + " " + logmsg, Level.VERBOSE);
     }
 
 
@@ -269,8 +274,15 @@ public class Log {
         return sw.toString();
     }
 
-    public static void compressAllLogs() {
-        logWriterThread.flushAndStartCompressTask();
+    /**
+     * 强制切换至新的日志文件， 以便将当前所有日志打包上传。
+     * force logger switch to new file to write.
+     * 此方法里面的逻辑将直接isCompressing状态置为true。
+     */
+    public static void switchToNewFile() {
+        i(TAG,"switchToNewFile.");
+        if(logWriterThread != null)
+            logWriterThread.flushAndStartCompressTask();
     }
 
     public static void decryptLogFile(Context context, Uri uri, byte[] privateKey) throws Exception {
@@ -365,19 +377,25 @@ public class Log {
     }
 
     /**
+     *
+     * @return previousFogFileName or NULL!!
+     */
+    public static String getPreviousLogFileName() {
+        return logWriterThread.getPreviousLogFileName();
+    }
+
+    /**
      *  get log folder name by process name,
      * @param context
-     * @param prefix optional, nullable, default is "logs/app_" , main process log will
-     *               saved in "logs/app_main", process "xxx" 's log will saved in
-     *               "logs/app_xxx" etc.
-     *               you can set it like "Log/app", Log is parent folder name , app is process log
-     *               folder prefix
+     * @param prefix optional, nullable, default is "app_" , main process log will
+     *               saved in "app_main", process "xxx" 's log will saved in
+     *               "app_xxx" etc.
      *
      */
-    public static String getLogFolderByProcess(Context context, String prefix) {
-        String processName = DataUtil.getCurrentProcessName(context, Process.myPid());
+    public static String getLogFolderByProcess(Context context, String processName, String prefix) {
+
         boolean isMainProcess = context.getPackageName().equals(processName);
-        String defaultPrefix = "logs/app_";
+        String defaultPrefix = "app_";
         if(prefix != null){
             defaultPrefix = prefix;
         }
@@ -396,5 +414,17 @@ public class Log {
             }
         }
         return folderName;
+    }
+
+    public static void setOnLogCompressListener(OnLogCompressDoneListener onLogCompressListener) {
+        Log.onLogCompressListener = onLogCompressListener;
+    }
+
+    public static boolean isCompressing(){
+        if(logWriterThread == null){
+            android.util.Log.w(TAG,"isCompressing logWriterThread == null");
+            return false;
+        }
+        return logWriterThread.isCompressing;
     }
 }
