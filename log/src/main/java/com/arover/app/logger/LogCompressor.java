@@ -18,15 +18,15 @@ import java.util.zip.ZipOutputStream;
 /**
  * log file compress thread.
  */
-class LogCompressor extends Thread {
+class LogCompressor implements Runnable {
     private static final String TAG = "LogCompressor";
     private static final int BUFFER_SIZE = 4096;
-    private final WeakReference<Handler> logThreadHandler;
+    private final Handler logThreadHandler;
     private final String logFolder;
     private final String currentWritingLogFile;
 
     public LogCompressor(Handler handler, String dir, String currentLogFileName) {
-        logThreadHandler = new WeakReference<>(handler);
+        logThreadHandler = handler;
         logFolder = dir;
         currentWritingLogFile = currentLogFileName;
     }
@@ -34,7 +34,12 @@ class LogCompressor extends Thread {
     @Override
     public void run() {
         try {
-            FileFilter logFilter = pathname -> pathname.getName().endsWith(".log");
+            FileFilter logFilter = new FileFilter() {
+                @Override
+                public boolean accept(File pathname) {
+                    return pathname.getName().endsWith(".log");
+                }
+            };
 
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
@@ -60,9 +65,10 @@ class LogCompressor extends Thread {
         } catch (Exception e) {
             Log.e(TAG, "findAllOldLogsAndCompress:" + e.getMessage(), e);
         }
-        Handler handler = logThreadHandler.get();
-        if (handler != null) {
-            handler.sendEmptyMessage(LogWriterThread.MSG_COMPRESS_COMPLETED);
+
+        Log.d(TAG, "findAllOldLogsAndCompress: logThreadHandler is null? " + (logThreadHandler == null));
+        if (logThreadHandler != null) {
+            logThreadHandler.sendEmptyMessage(LogWriterThread.MSG_COMPRESS_COMPLETED);
         }
     }
 

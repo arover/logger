@@ -14,17 +14,30 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         
+        String processName = getProcessName(this);
+        //save logs of processes separately.
+        //if your app is single process app, simply set processLogFolder as ""
+        String folderName = Log.getLogFolderByProcess(this, processName,  "log_demo_");
+
         new LoggerManager.Builder(this)
-                //enable logcat or not
                 .enableLogcat(BuildConfig.DEBUG)
-                // config level
-                .level(BuildConfig.DEBUG ? LoggerManager.Level.VERBOSE: LoggerManager.Level.DEBUG)
-                // set log folder name , log saved in external files dir, 
-                // eg: /sdcard/Android/data/com.your.package.name/files/log/2021-02-02-0.log
-                .folder("log")
+                .level(BuildConfig.DEBUG ? LoggerManager.Level.VERBOSE : LoggerManager.Level.DEBUG)
+                // disable encryption in debug build.
+                .encryptWithPublicKey(publicKey)
+                // logs' root folder name, it's path is /sdcard/Android/data/[applicationId]/files/logs
+                .rootFolder("logs")
+                // process's log folder name(in root folder)
+                //it's path is /sdcard/Android/data/[applicationId]/files/logs/log_demo_main/
+                .processLogFolder(folderName)
+                //use rxjava perform io tasks to avoid create new thread.
+                .logTaskExecutor(new LogExecutor(){
+                    @Override
+                    public void execute(Runnable runnable) {
+                        Schedulers.io().scheduleDirect(runnable);
+                    }
+                })
                 .build()
-                // start old log delete task. 
-                .deleteOldLogs(7);
+                .deleteOldLogsDelayed(7);
         // use it like android.util.Log.
         Log.d(TAG,"app is launching...");
     }

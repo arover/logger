@@ -16,14 +16,15 @@ public class LoggerManager {
     private static final String TAG = "LoggerManager";
     private static final int DEFAULT_MAX_LOG_IN_DAYS = 10;
     private static final long DELETE_LOG_DELAY = 20 * 1000;
-    public static final String DEFAULT_CRASH_FOLDER_NAME = "logs/log_crash";
+    public static final String DEFAULT_CRASH_FOLDER_NAME = "log_crash";
     private final Context context;
     private String logDirFullPath;
     private boolean enableLogcat;
     private Level level = Level.VERBOSE;
     LogExecutor logExecutor;
-    private String logFolderName = "log";
+    private String rootFolder = "log";
     private String publicKey;
+    private String processLogFolder="";
 
     public static class Builder {
         private final LoggerManager mgr;
@@ -37,8 +38,13 @@ public class LoggerManager {
             return this;
         }
 
-        public Builder folder(String folderName) {
-            mgr.logFolderName = folderName;
+        public Builder rootFolder(String folderName) {
+            mgr.rootFolder = folderName;
+            return this;
+        }
+
+        public Builder processLogFolder(String prefixName) {
+            mgr.processLogFolder = prefixName;
             return this;
         }
 
@@ -46,7 +52,10 @@ public class LoggerManager {
             mgr.enableLogcat = isEnable;
             return this;
         }
-
+        /**
+         * empty or null will disable log encryption. default is null;
+         * @param publicKey nullable, RSA public key hex String.
+         */
         public Builder encryptWithPublicKey(String publicKey) {
             mgr.publicKey = publicKey;
             return this;
@@ -116,8 +125,16 @@ public class LoggerManager {
         }
     }
 
+    void perform(Runnable runnable) {
+        if (logExecutor != null) {
+            logExecutor.execute(runnable);
+        } else {
+            new Thread(runnable).start();
+        }
+    }
+
     private void initialize() {
-        if (logFolderName == null) {
+        if (rootFolder == null) {
             throw new NullPointerException("folder name is null");
         }
 
@@ -128,7 +145,7 @@ public class LoggerManager {
             logExecutor = new DefaultLogExecutor();
         }
 
-        initStorageFolder(logFolderName);
+        initStorageFolder(rootFolder, processLogFolder);
 
         if (logDirFullPath == null) {
             android.util.Log.e(TAG, "initialize log failed.");
@@ -138,31 +155,31 @@ public class LoggerManager {
         Log.init(this);
     }
 
-    private void initStorageFolder(String folder) {
+    private void initStorageFolder(String rootFolder, String processLogFolder) {
         if (isExternalStorageWritable()) {
             File dir = context.getExternalFilesDir(null);
             if (dir == null) {
                 dir = context.getFilesDir();
             }
-            initDir(dir, folder);
+            initDir(dir, rootFolder, processLogFolder);
         } else {
             android.util.Log.e(TAG, "initStorageFolder external storage is not writable");
-            initDir(context.getFilesDir(), folder);
+            initDir(context.getFilesDir(), rootFolder, processLogFolder);
         }
     }
 
 
-    private void initDir(File dir, String folder) {
-        Log.rootDir = dir;
-        String path = dir + "/"+ folder;
+    private void initDir(File dir, String rootFolder, String processLogFolder) {
+        Log.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
+        String path = dir + "/"+ rootFolder+ "/"+processLogFolder;
         android.util.Log.i(TAG, "log folder:"+path);
-        String crashLogPath = dir + "/" + DEFAULT_CRASH_FOLDER_NAME;
+        String crashLogPath = dir + "/" + rootFolder + "/" + DEFAULT_CRASH_FOLDER_NAME;
         File crashLogDir = new File(crashLogPath);
+
         if(!crashLogDir.exists()){
             boolean ignored = crashLogDir.mkdirs();
         }
-        Log.crashLogDir = crashLogDir.getAbsolutePath();
-
+        Log.crashLogDir = crashLogPath;
         File logDir = new File(path);
 
         if (!logDir.exists() && !logDir.mkdirs()) {
@@ -191,15 +208,15 @@ public class LoggerManager {
         } else {
             days = logFileDays;
         }
-        if (logFolderName == null) {
+        if (rootFolder == null) {
             android.util.Log.d(TAG,"storage folder is null.");
             return;
         }
 
         if(logExecutor != null) {
-            logExecutor.execute(new DeleteLogTask(logFolderName, days));
+            logExecutor.execute(new DeleteLogTask(rootFolder, days));
         } else {
-            new Thread(new DeleteLogTask(logFolderName, days)).start();
+            new Thread(new DeleteLogTask(rootFolder, days)).start();
         }
     }
 

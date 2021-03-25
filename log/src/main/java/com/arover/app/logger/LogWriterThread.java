@@ -33,24 +33,24 @@ public class LogWriterThread extends HandlerThread {
     static final int MSG_COMPRESS_COMPLETED = 3;
     private static final int MSG_FORCE_FLUSH = 4;
     private static final int MSG_INCREASE_LOG_NO = 5;
-    private static final long FLUSH_LOG_DELAY = 500;
+    private static final long FLUSH_LOG_DELAY = 200;
 
-    public static final int BUFFER_SIZE = 1024 * 32;
+    public static final int BUFFER_SIZE = 1024 * 128;
     private static final ByteBuffer sLogBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
     private static final long MAX_LOG_FILE_SIZE = 1024 * 1024 * 10; //10mb
-    private static final int FLUSH_THRESHOLD = BUFFER_SIZE/8;// write log if size > 4kb
+    private static final int FLUSH_THRESHOLD = BUFFER_SIZE / 8;// write log if size > 4kb
     static final byte ENCRYPT_LOG = 1;
     static final byte PLAIN_LOG = 0;
     private final LoggerManager logManager;
     public static LogWriterThread instance;
     private byte[] publicKey;
 
-    private boolean isCompressing;
+    volatile boolean isCompressing;
     private DataOutputStream fileLogWriter;
     private Handler handler;
-    private LogCompressor logCompressor;
     private boolean doCheckUncompressedLogs = true;
     private File currentLogFile;
+    private String previousFogFileName;
     private int logFileNo = 0;
     private String currentLogFileName;
 
@@ -59,8 +59,8 @@ public class LogWriterThread extends HandlerThread {
         this.logManager = loggerManager;
         instance = this;
 
-        if(loggerManager.getPublicKey() != null && loggerManager.getPublicKey().trim().length() > 0){
-            publicKey=hexStringToBytes(loggerManager.getPublicKey());
+        if (loggerManager.getPublicKey() != null && loggerManager.getPublicKey().trim().length() > 0) {
+            publicKey = hexStringToBytes(loggerManager.getPublicKey());
         }
 
     }
@@ -80,13 +80,16 @@ public class LogWriterThread extends HandlerThread {
                     case MSG_LOG:
                         String log = (String) msg.obj;
                         byte[] bytes = log.getBytes();
-//                        android.util.Log.d(TAG, "put log" + log + "，bytes=" + bytesToHexString(bytes));
+                        android.util.Log.v(TAG, "put log bytes len=" + bytes.length
+                                +",position="+sLogBuffer.position()
+                                +",limit="+sLogBuffer.limit());
 
-                        if(sLogBuffer.limit() - sLogBuffer.position() > bytes.length){
+                        if (bytes.length < sLogBuffer.limit() - sLogBuffer.position()) {
                             sLogBuffer.put(log.getBytes());
                             sendEmptyMessageDelayed(MSG_FLUSH, FLUSH_LOG_DELAY);
                         } else {
-                            android.util.Log.e(TAG,"back pressure!!!  log discarded,  plz increase sLogBuffer");
+                            sendEmptyMessage(MSG_FLUSH);
+                            android.util.Log.e(TAG, "back pressure!!!  log discarded,  plz increase sLogBuffer");
                         }
                         break;
 
@@ -110,7 +113,7 @@ public class LogWriterThread extends HandlerThread {
                         writeLog(true);
                         closeWriter();
                         // add file no to start new filer writer;
-                        logFileNo+=1;
+                        logFileNo += 1;
                         break;
                     case MSG_CLOSE:
 //                        android.util.Log.d(TAG, "close log write");
@@ -118,7 +121,13 @@ public class LogWriterThread extends HandlerThread {
                         break;
                     case MSG_COMPRESS_COMPLETED:
                         isCompressing = false;
-                        logCompressor = null;
+                        OnLogCompressDoneListener listener = Log.onLogCompressListener;
+                        if (listener != null) {
+                            logManager.perform(listener::onCompressCompleted);
+                            android.util.Log.d(TAG,"MSG_COMPRESS_COMPLETED, clear onLogCompressListener");
+                            //clear listener
+                            Log.onLogCompressListener = null;
+                        }
                         break;
                 }
             }
@@ -143,22 +152,22 @@ public class LogWriterThread extends HandlerThread {
         if (Log.sLogDir == null) return;
 
         if (fileLogWriter == null || reachLogFileSizeLimit()) {
-            createLogWriter();
+            createLogWriter(forceFlush);
         }
 
-        if (fileLogWriter == null){
-            android.util.Log.e(TAG,"LOGGER ERROR  writeLog createLogWriter failed");
+        if (fileLogWriter == null) {
+            android.util.Log.e(TAG, "LOGGER ERROR  writeLog createLogWriter failed");
             return;
         }
 
         if (diskNoMoreSpace()) {
-            android.util.Log.e(TAG,"LOGGER ERROR  no more space.");
+            android.util.Log.e(TAG, "LOGGER ERROR  no more space.");
             sLogBuffer.clear();
             return;
         }
-        byte mode = (byte) (publicKey == null? 0:1);
+        byte mode = (byte) (publicKey == null ? 0 : 1);
         boolean doWriteNow;
-        if(mode == ENCRYPT_LOG) {
+        if (mode == ENCRYPT_LOG) {
             doWriteNow = sLogBuffer.position() > FLUSH_THRESHOLD || forceFlush;
         } else {
             // we write plain log immediately;
@@ -173,7 +182,7 @@ public class LogWriterThread extends HandlerThread {
             sLogBuffer.get(temp);
             sLogBuffer.clear();
 
-            if(mode == ENCRYPT_LOG) {
+            if (mode == ENCRYPT_LOG) {
                 writeEncryptedLog(temp);
             } else {
                 writePlainLog(temp);
@@ -182,6 +191,7 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private boolean diskNoMoreSpace() {
+        //todo
         return false;
     }
 
@@ -238,7 +248,11 @@ public class LogWriterThread extends HandlerThread {
 
     }
 
-    private void createLogWriter() {
+    /**
+     * create log write and compress old file.
+     * @param forceFlush
+     */
+    private void createLogWriter(boolean forceFlush) {
 
         IoUtil.closeQuietly(fileLogWriter);
 
@@ -246,15 +260,18 @@ public class LogWriterThread extends HandlerThread {
         if (!folder.exists() && !folder.mkdirs()) {
             android.util.Log.e(TAG, "log dir create failed.dir=" + Log.sLogDir);
         }
-
+        //save currentLogFileName
+        if (currentLogFileName != null) {
+            previousFogFileName = currentLogFileName;
+        }
         try {
             // find latest log file no.
-            while(true) {
+            while (true) {
                 currentLogFileName = genLogFileName();
 //                android.util.Log.v(TAG, "createLogWriter file=" + currentLogFileName);
-                String zippedLog = currentLogFileName.replace(".log",".zip");
-                File zippedFile = new File(Log.sLogDir,zippedLog);
-                if(zippedFile.exists()) {
+                String zippedLog = currentLogFileName.replace(".log", ".zip");
+                File zippedFile = new File(Log.sLogDir, zippedLog);
+                if (zippedFile.exists()) {
 //                    android.util.Log.v(TAG, "zippedLog file exist=" + zippedLog);
                     logFileNo++;
                 } else {
@@ -277,13 +294,17 @@ public class LogWriterThread extends HandlerThread {
 
             fileLogWriter = new DataOutputStream(new FileOutputStream(currentLogFile, true));
 
-            if (doCheckUncompressedLogs && !isCompressing) {
-                findAllOldLogsAndCompress();
+            if (doCheckUncompressedLogs) { // && !isCompressing
+                findAllOldLogsAndCompress(forceFlush);
                 doCheckUncompressedLogs = false;
+            } else if(forceFlush){
+                android.util.Log.d(TAG,"doCheckUncompressedLogs false, clear onLogCompressListener");
+                isCompressing = false;
+                Log.onLogCompressListener = null;
             }
             logFileNo++;
         } catch (Exception e) {
-            if(logFileNo > 0) {
+            if (logFileNo > 0) {
                 logFileNo -= 1;
             }
             android.util.Log.e(TAG, "writeLog", e);
@@ -299,10 +320,10 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private String genLogFileName() {
-        String prefix="";
+        String prefix = "";
         // add prefix to encrypted log file name. avoid write plain log
         // to same file after app changed log mode.
-        if(isEncryptMode()){
+        if (isEncryptMode()) {
             prefix = "s_";
         }
         Calendar cal = Calendar.getInstance();
@@ -316,11 +337,16 @@ public class LogWriterThread extends HandlerThread {
         return publicKey != null;
     }
 
-    private void findAllOldLogsAndCompress() {
-        if (isCompressing) return;
+    private void findAllOldLogsAndCompress(boolean isUrgent) {
+        isCompressing = true;
 
-        logCompressor = new LogCompressor(handler, logManager.getLogDirFullPath(), currentLogFileName);
-        logCompressor.start();
+        LogCompressor task = new LogCompressor(handler, logManager.getLogDirFullPath(), currentLogFileName);
+
+        if(isUrgent) {
+            new Thread(task).start();
+        } else {
+            logManager.perform(task);
+        }
     }
 
     private String getLogTime() {
@@ -357,9 +383,22 @@ public class LogWriterThread extends HandlerThread {
         return super.quitSafely();
     }
 
-
+    /**
+     * send command to logger thread to flush msg and switch to new file.
+     */
     public void flushAndStartCompressTask() {
+        //清空日志缓存至文件，并更换文件将会执行日志文件压缩，在此直接先置为true， 方便后续打包上传的
+        //逻辑判断处理。
+        isCompressing = true;
+
         handler.sendEmptyMessage(MSG_FORCE_FLUSH);
         handler.sendEmptyMessage(MSG_INCREASE_LOG_NO);
+    }
+
+    /**
+     * @return previousFogFileName or null
+     */
+    public String getPreviousLogFileName() {
+        return previousFogFileName;
     }
 }

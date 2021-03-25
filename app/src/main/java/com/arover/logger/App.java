@@ -1,10 +1,15 @@
 package com.arover.logger;
 
+import android.app.ActivityManager;
 import android.app.Application;
+import android.content.Context;
+import android.os.Process;
 
 import com.arover.app.logger.Log;
 import com.arover.app.logger.LogExecutor;
 import com.arover.app.logger.LoggerManager;
+
+import java.util.List;
 
 import androidx.annotation.NonNull;
 import io.reactivex.rxjava3.schedulers.Schedulers;
@@ -35,16 +40,18 @@ public class App extends Application {
             }
         });
 
-
+        String processName = getProcessName(this);
         //save logs of processes separately.
-        String folderName = Log.getLogFolderByProcess(this, "logs/log_demo_");
+        //if your app is single process app, simply set processLogFolder as ""
+        String folderName = Log.getLogFolderByProcess(this, processName,  "log_demo_");
 
         new LoggerManager.Builder(this)
                 .enableLogcat(BuildConfig.DEBUG)
                 .level(BuildConfig.DEBUG ? LoggerManager.Level.VERBOSE : LoggerManager.Level.DEBUG)
                 // disable encryption in debug build.
                 .encryptWithPublicKey(publicKey)
-                .folder(folderName)
+                .rootFolder("logs")
+                .processLogFolder(folderName)
                 //use rxjava perform io tasks to avoid create new thread.
                 .logTaskExecutor(new LogExecutor(){
                     @Override
@@ -57,4 +64,19 @@ public class App extends Application {
         Log.d(TAG, "app is launching...");
     }
 
+    public String getProcessName(Context ctx) {
+        ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = am.getRunningAppProcesses();
+        if (runningAppProcesses == null) {
+            return null;
+        }
+
+        for (ActivityManager.RunningAppProcessInfo info : runningAppProcesses) {
+            if (info.pid == Process.myPid()) {
+                return info.processName;
+            }
+        }
+
+        return null;
+    }
 }
