@@ -269,6 +269,7 @@ public class Log {
 
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
+        sw.write(tr.getMessage()+"\n");
         tr.printStackTrace(pw);
         pw.flush();
         return sw.toString();
