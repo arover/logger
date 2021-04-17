@@ -4,7 +4,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Process;
 
-import com.arover.app.util.DataUtil;
 import com.arover.app.crypto.AesCbcCipher;
 import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.LoggerManager.Level;
@@ -19,7 +18,7 @@ import java.io.StringWriter;
 import java.net.UnknownHostException;
 
 import static com.arover.app.util.DataUtil.bytesToHexString;
-import static com.arover.app.logger.LogWriterThread.ENCRYPT_LOG;
+import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
 
 /**
  * File storage logger
@@ -269,6 +268,7 @@ public class Log {
 
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
+        sw.write(tr.getMessage()+"\n");
         tr.printStackTrace(pw);
         pw.flush();
         return sw.toString();
@@ -318,7 +318,7 @@ public class Log {
                 }
                 byte mode = in.readByte();
                 android.util.Log.v(TAG, "mode = " + mode);
-                if (mode == ENCRYPT_LOG) {
+                if (mode == MODE_ENCRYPT_LOG) {
                     n = in.read(iv);
                     android.util.Log.v(TAG, "iv = " + bytesToHexString(iv));
                     if (n != iv.length) {
@@ -336,7 +336,7 @@ public class Log {
                     android.util.Log.e(TAG, "encrypted log length is not correct, read len=" + n + ",len=" + len);
                     throw new IllegalStateException("read log data error, read log length is not equals len.");
                 }
-                if (mode == ENCRYPT_LOG) {
+                if (mode == MODE_ENCRYPT_LOG) {
                     byte[] decryptLog;
                     try {
                         byte[] decryptKey = RsaCipher.decrypt(key, privateKey);

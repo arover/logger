@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int PICK_FILE_RESULT_CODE = 101;
-    private EditText textInput;
+
     private KeyPair keypair;
     private byte[] encryptedInputText;
     private TextView resultTxt;
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         setContentView(R.layout.activity_main);
-        textInput = findViewById(R.id.text);
+
         resultTxt = findViewById(R.id.result);
         resultTxt2 = findViewById(R.id.result2);
 
@@ -230,31 +230,31 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void encryptTxt() {
-        String input = textInput.getText().toString();
-        android.util.Log.d(TAG, "encryptTxt=" + input);
-        try {
-            encryptedInputText = RsaCipher
-                    .encrypt(input.getBytes(), keypair.getPublic().getEncoded());
-            resultTxt.setText(DataUtil.bytesToHexString(encryptedInputText));
-            android.util.Log.d(TAG, "encryptTxt len=" + encryptedInputText.length);
-        } catch (Exception e) {
-            android.util.Log.d(TAG, "encryptTxt=" + input, e);
-            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
+//    private void encryptTxt() {
+//        String input = textInput.getText().toString();
+//        android.util.Log.d(TAG, "encryptTxt=" + input);
+//        try {
+//            encryptedInputText = RsaCipher
+//                    .encrypt(input.getBytes(), keypair.getPublic().getEncoded());
+//            resultTxt.setText(DataUtil.bytesToHexString(encryptedInputText));
+//            android.util.Log.d(TAG, "encryptTxt len=" + encryptedInputText.length);
+//        } catch (Exception e) {
+//            android.util.Log.d(TAG, "encryptTxt=" + input, e);
+//            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+//        }
+//    }
 
-    private void decryptTxt() {
-
-        try {
-            byte[] decryptBytes = RsaCipher
-                    .decrypt(encryptedInputText, keypair.getPrivate().getEncoded());
-            resultTxt.setText(new String(decryptBytes));
-        } catch (Exception e) {
-            android.util.Log.e(TAG, "decryptTxt=", e);
-            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
+//    private void decryptTxt() {
+//
+//        try {
+//            byte[] decryptBytes = RsaCipher
+//                    .decrypt(encryptedInputText, keypair.getPrivate().getEncoded());
+//            resultTxt.setText(new String(decryptBytes));
+//        } catch (Exception e) {
+//            android.util.Log.e(TAG, "decryptTxt=", e);
+//            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+//        }
+//    }
 
     private void decryptLog(Uri fileUri) {
         Context appContext = getApplicationContext();
