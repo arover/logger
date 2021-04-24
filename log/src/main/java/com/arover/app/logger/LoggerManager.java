@@ -6,6 +6,9 @@ import android.os.Handler;
 import android.os.Looper;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,7 +27,7 @@ public class LoggerManager {
     LogExecutor logExecutor;
     private String rootFolder = "log";
     private String publicKey;
-    private String processLogFolder="";
+    private String processLogFolder = "";
 
     public static class Builder {
         private final LoggerManager mgr;
@@ -52,8 +55,10 @@ public class LoggerManager {
             mgr.enableLogcat = isEnable;
             return this;
         }
+
         /**
          * empty or null will disable log encryption. default is null;
+         *
          * @param publicKey nullable, RSA public key hex String.
          */
         public Builder encryptWithPublicKey(String publicKey) {
@@ -171,12 +176,12 @@ public class LoggerManager {
 
     private void initDir(File dir, String rootFolder, String processLogFolder) {
         Log.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
-        String path = dir + "/"+ rootFolder+ "/"+processLogFolder;
-        android.util.Log.i(TAG, "log folder:"+path);
+        String path = dir + "/" + rootFolder + "/" + processLogFolder;
+        android.util.Log.i(TAG, "log folder:" + path);
         String crashLogPath = dir + "/" + rootFolder + "/" + DEFAULT_CRASH_FOLDER_NAME;
         File crashLogDir = new File(crashLogPath);
 
-        if(!crashLogDir.exists()){
+        if (!crashLogDir.exists()) {
             boolean ignored = crashLogDir.mkdirs();
         }
         Log.crashLogDir = crashLogPath;
@@ -208,35 +213,34 @@ public class LoggerManager {
         } else {
             days = logFileDays;
         }
-        if (rootFolder == null) {
-            android.util.Log.d(TAG,"storage folder is null.");
+        if (Log.getRootDir() == null) {
+            android.util.Log.d(TAG, "storage folder is null.");
             return;
         }
 
-        if(logExecutor != null) {
-            logExecutor.execute(new DeleteLogTask(rootFolder, days));
+        android.util.Log.d(TAG, "deleteOldLogs days="+logFileDays+",dir="+Log.getRootDir());
+
+        if (logExecutor != null) {
+            logExecutor.execute(new DeleteLogTask(Log.getRootDir(), days));
         } else {
-            new Thread(new DeleteLogTask(rootFolder, days)).start();
+            new Thread(new DeleteLogTask(Log.getRootDir(), days)).start();
         }
     }
 
     /**
      * delete old logs in n days.
      * operation post delayed in 3 seconds to avoid occupy cpu time for app launch.
+     *
      * @param days
      */
     public void deleteOldLogsDelayed(final int days) {
         new Handler(Looper.getMainLooper()).postDelayed(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        deleteOldLogs(days);
-                    }
-                },
+                () -> deleteOldLogs(days),
                 DELETE_LOG_DELAY);
     }
 
     private static class DeleteLogTask implements Runnable {
+        private static final int DAY_IN_MILLS = 24 * 3600 * 1000;
         private final int days;
         private final String folder;
 
@@ -248,19 +252,38 @@ public class LoggerManager {
         @Override
         public void run() {
             File file = new File(folder);
+            Log.i(TAG, "DeleteLogTask checking old logs folder = " + file);
+            if (!file.exists()) {
+                return;
+            }
+            removeLogs(file);
+        }
 
-            if (file.exists() && file.isDirectory()) {
-                File files[] = file.listFiles();
-                if (files == null) return;
+        private void removeLogs(File logRootFolder) {
+            List<File> folders =
+                    new ArrayList<>(Arrays.asList(logRootFolder.listFiles(File::isDirectory)));
+            folders.add(logRootFolder);
 
-                if (files.length <= days) return;
-                Log.i(TAG, "delete log file length = " + (files.length - days));
+            for (File folder : folders) {
 
-                for (int i = files.length - 1; i >= days; i--) {
-                    if (!files[i].delete())
-                        Log.w(TAG, "delete log file failed,name" + files[i].getName());
+                android.util.Log.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
+
+                File[] logFiles = folder.listFiles(f ->
+                        (f.getName().contains("zip") || f.getName().contains(".log")));
+
+                if (logFiles == null) continue;
+
+                for (File logFile : logFiles) {
+                    if (isNDaysBeforeFiles(days, logFile)) {
+                        logFile.delete();
+                        Log.i(TAG, "DeleteLogTask delete logFile " + logFile);
+                    }
                 }
             }
+        }
+
+        private boolean isNDaysBeforeFiles(int days, File file) {
+            return System.currentTimeMillis() - file.lastModified() > days * DAY_IN_MILLS;
         }
     }
 
