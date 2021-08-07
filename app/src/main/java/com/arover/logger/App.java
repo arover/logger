@@ -33,6 +33,9 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        // logger is not init ,write it to memory buffer, after init, it will write to file.
+        // And DO NOT write too many logs because the buffer size is limited.
+        Log.d(TAG,"on Create");
         // change this to your public key, and save your private key
         // to Android/data/com.arover.logger/files/log_private.key
         // you can generate encryption keys by build this app.
@@ -44,17 +47,17 @@ public class App extends Application {
         //multi process support.
         String processName = getProcessName(this);
         //save logs of processes separately.
-        String folderName = Log.getLogFolderByProcess(this, processName,  "log_demo_");
+        String folderName = Log.getLogFolderByProcess(this, processName,  "process_");
 
         new LoggerManager.Builder(this)
                 //required.
                 .enableLogcat(BuildConfig.DEBUG)
                 //required.
-                .level(BuildConfig.DEBUG ? LoggerManager.Level.VERBOSE : LoggerManager.Level.DEBUG)
+                .level(LoggerManager.Level.DEBUG)
                 //required. log folder name of app scope storage.
                 .rootFolder("logs")
                 //optional. disable encryption in debug build.
-                .encryptWithPublicKey(publicKey)
+//                .encryptWithPublicKey(publicKey)
                 //optional. if your app is single process app, simply set processLogFolder as ""
                 .processLogFolder(folderName) //
                 //optional.set rxjava io scheduler for perform background io tasks execution to

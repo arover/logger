@@ -16,6 +16,7 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 
 import androidx.annotation.Nullable;
 
@@ -35,7 +36,7 @@ public class Log {
 
     static LogWriterThread logWriterThread;
     private static int sLogLvl = Level.DEBUG.code;
-
+    private static StringBuilder buffer = new StringBuilder();
     public static boolean sLogcatEnabled;
     public static String sLogLvlName;
     static String sLogDir;
@@ -264,8 +265,7 @@ public class Log {
         if (logWriterThread != null) {
             logWriterThread.writeLog(level, log);
         } else {
-            android.util.Log.i(TAG,
-                    "writeToFile: logWriterThread not init yet, messages are discard.");
+            LogWriterThread.writeLogToBuffer(log,level);
         }
     }
 
