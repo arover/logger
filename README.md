@@ -1,6 +1,14 @@
-# File Logger for android
+# Fully Functional local filesystem Logger for Android
+<pre>
+    <b>Logging First!!</b>
+    <p>
+        logger is a foundation component for your app, it's a key to identify or resolve your app's
+    runtime problem. 
 
-android local filesystem persistence logger. 
+        this logger is fully functional, support features like encryption, daily rotation etc. and it's robust!.
+    </p>
+</pre>
+
 ## Features: 
 - RSA & AES encryption
 - daily roation & auto ratation by file size
@@ -8,8 +16,7 @@ android local filesystem persistence logger.
 - customize log folder
 - multi process logging
 - pure java implementation NO JNI, smallest lib size.
-
-
+  
 ## Usage
 
 ```java

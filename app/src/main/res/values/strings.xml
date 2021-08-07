@@ -7,7 +7,7 @@
     <string name="choose_log_file_title">Choose a zip or blog file</string>
     <string name="decrypt_log_file">decrypt</string>
     <string name="choose_file">Choose File..</string>
-    <string name="log" translatable="false">log</string>
+    <string name="log" translatable="false">print some log</string>
     <string name="flush" translatable="false">flush</string>
     <string name="result1" translatable="false">result1</string>
     <string name="result2" translatable="false">result2</string>

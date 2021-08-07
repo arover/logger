@@ -7,13 +7,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.arover.app.util.DataUtil;
 import com.arover.app.crypto.RsaCipher;
 import com.arover.app.logger.Log;
+import com.arover.app.util.DataUtil;
 import com.arover.app.util.IoUtil;
 
 import java.io.File;
