@@ -1,6 +1,14 @@
 # File Logger for android
 
-this is a file logger written in java without fancy features.
+android local filesystem persistence logger. 
+## features: 
+- RSA & AES encryption
+- daily roation
+- auto remove old logs
+- customize log folder
+- multi process logging
+- pure java implementation NO JNI, smallest lib size.
+
 
 ## Usage
 
