@@ -1,7 +1,7 @@
 # File Logger for android
 
 android local filesystem persistence logger. 
-## features: 
+## Features: 
 - RSA & AES encryption
 - daily roation & auto ratation by file size
 - auto remove old logs
