@@ -42,9 +42,9 @@ public class LogWriterThread extends HandlerThread {
     static final byte MODE_PLAIN_LOG = 0;
     private final LoggerManager logManager;
     public static LogWriterThread instance;
+    private final byte logTextEncryptionMode;
     private byte[] publicKey;
 
-    volatile boolean isCompressing;
     private DataOutputStream fileLogWriter;
     private Handler handler;
     private boolean doCheckUncompressedLogs = true;
@@ -60,6 +60,9 @@ public class LogWriterThread extends HandlerThread {
 
         if (loggerManager.getPublicKey() != null && loggerManager.getPublicKey().trim().length() > 0) {
             publicKey = hexStringToBytes(loggerManager.getPublicKey());
+            logTextEncryptionMode = MODE_ENCRYPT_LOG;
+        } else {
+            logTextEncryptionMode = MODE_PLAIN_LOG;
         }
 
     }
@@ -107,11 +110,12 @@ public class LogWriterThread extends HandlerThread {
                         closeWriter();
                         break;
                     case MSG_COMPRESS_COMPLETED:
-                        isCompressing = false;
+
                         OnLogCompressDoneListener listener = Log.onLogCompressListener;
                         if (listener != null) {
                             logManager.perform(listener::onCompressCompleted);
-                            android.util.Log.d(TAG, "MSG_COMPRESS_COMPLETED, clear onLogCompressListener");
+                            android.util.Log.d(TAG, "MSG_COMPRESS_COMPLETED, clear " +
+                                    "onLogCompressListener");
                             //clear listener
                             Log.onLogCompressListener = null;
                         }
@@ -188,9 +192,8 @@ public class LogWriterThread extends HandlerThread {
             sLogBuffer.clear();
             return;
         }
-        byte mode = (byte) (publicKey == null ? MODE_PLAIN_LOG : MODE_ENCRYPT_LOG);
         boolean doWriteNow;
-        if (mode == MODE_ENCRYPT_LOG) {
+        if (logTextEncryptionMode == MODE_ENCRYPT_LOG) {
             doWriteNow = sLogBuffer.position() > FLUSH_THRESHOLD || forceFlush;
         } else {
             // we write plain log immediately;
@@ -198,14 +201,14 @@ public class LogWriterThread extends HandlerThread {
         }
 
         if (sLogBuffer.position() > 0 && doWriteNow) {
-            android.util.Log.i(TAG, "Log Buffer flushed:n=" + sLogBuffer.position());
+//            android.util.Log.v(TAG, "Log Buffer flushed:n=" + sLogBuffer.position());
             int n = sLogBuffer.position();
             byte[] temp = new byte[n];
             sLogBuffer.flip();
             sLogBuffer.get(temp);
             sLogBuffer.clear();
 
-            if (mode == MODE_ENCRYPT_LOG) {
+            if (logTextEncryptionMode == MODE_ENCRYPT_LOG) {
                 writeEncryptedLog(temp);
             } else {
                 writePlainLog(temp);
@@ -214,7 +217,6 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private boolean diskNoMoreSpace() {
-        //todo
         return false;
     }
 
@@ -231,18 +233,12 @@ public class LogWriterThread extends HandlerThread {
     private void writeEncryptedLog(byte[] temp) {
         byte[] iv = AesCbcCipher.genRandomBytes(16);
         byte[] key = AesCbcCipher.genRandomBytes(16);
-        byte[] encryptedLog = temp;
-        byte mode = MODE_ENCRYPT_LOG;
+        byte[] encryptedLog;
         try {
             encryptedLog = AesCbcCipher.encrypt(temp, key, iv);
-        } catch (Exception e) {
-            android.util.Log.e(TAG, "encrypt log error", e);
-            mode = 0;
-        }
-        byte[] len = intToBytes(encryptedLog.length);
-        byte[] encryptKey = RsaCipher.encrypt(key, publicKey);
-        byte[] encryptIv = RsaCipher.encrypt(iv, publicKey);
-
+            byte[] len = intToBytes(encryptedLog.length);
+            byte[] encryptKey = RsaCipher.encrypt(key, publicKey);
+            byte[] encryptIv = RsaCipher.encrypt(iv, publicKey);
 //        android.util.Log.v(TAG, "mode = " + mode);
 //        android.util.Log.v(TAG, "iv = " + bytesToHexString(iv));
 //        android.util.Log.v(TAG, "key = " + bytesToHexString(key));
@@ -250,16 +246,15 @@ public class LogWriterThread extends HandlerThread {
 //        android.util.Log.d(TAG, "encryptKey.length = " + encryptKey.length);
 //        android.util.Log.d(TAG, "write len hex= " + bytesToHexString(len)
 //                + ",len = " + encryptedLog.length + ",log hex=" + bytesToHexString(encryptedLog));
-
-        try {
             fileLogWriter.write(len);
-            fileLogWriter.write(mode);
+            fileLogWriter.write(MODE_ENCRYPT_LOG);
             fileLogWriter.write(encryptIv);
             fileLogWriter.write(encryptKey);
             fileLogWriter.write(encryptedLog);
             fileLogWriter.flush();
 
         } catch (Exception e) {
+            //
             android.util.Log.e(TAG, "writeLog", e);
             fileLogWriter = null;
         }
@@ -323,7 +318,7 @@ public class LogWriterThread extends HandlerThread {
                 doCheckUncompressedLogs = false;
             } else if (forceFlush) {
                 android.util.Log.d(TAG, "doCheckUncompressedLogs false, clear onLogCompressListener");
-                isCompressing = false;
+
                 Log.onLogCompressListener = null;
             }
             logFileNo++;
@@ -362,7 +357,7 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private void findAllOldLogsAndCompress(boolean isUrgent) {
-        isCompressing = true;
+
 
         LogCompressor task = new LogCompressor(handler, logManager.getLogDirFullPath(), currentLogFileName);
 
@@ -411,10 +406,6 @@ public class LogWriterThread extends HandlerThread {
      * send command to logger thread to flush msg and switch to new file.
      */
     public void flushAndStartCompressTask() {
-        //清空日志缓存至文件，并更换文件将会执行日志文件压缩，在此直接先置为true， 方便后续打包上传的
-        //逻辑判断处理。
-        isCompressing = true;
-
         handler.sendEmptyMessage(MSG_FORCE_FLUSH);
         handler.sendEmptyMessage(MSG_INCREASE_LOG_NO);
     }

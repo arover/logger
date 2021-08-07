@@ -1,6 +1,13 @@
-# File Logger for android
+# Fully Functional local filesystem Logger for Android
+<pre>
+    <b>Logging First!!</b>
+    <p>
+        logger is a foundation component for your app, it's a key to identify or resolve your app's
+    runtime problem. 
 
-this is a file logger written in java without fancy features.
+        this logger is fully functional, support features like encryption, daily rotation etc. and it's robust!.
+    </p>
+</pre>
 
 ## Usage
 

@@ -2,7 +2,6 @@ package com.arover.app.logger;
 
 import android.os.Handler;
 
-import com.arover.app.util.DataUtil;
 import com.arover.app.util.IoUtil;
 
 import java.io.BufferedInputStream;
@@ -11,7 +10,6 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.lang.ref.WeakReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -34,16 +32,12 @@ class LogCompressor implements Runnable {
     @Override
     public void run() {
         try {
-            FileFilter logFilter = new FileFilter() {
-                @Override
-                public boolean accept(File pathname) {
-                    return pathname.getName().endsWith(".log");
-                }
-            };
+            FileFilter logFilter = pathname -> pathname.getName().endsWith(".log");
 
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
             if(logFiles == null){
+                Log.v(TAG,"no logs");
                 return;
             }
 

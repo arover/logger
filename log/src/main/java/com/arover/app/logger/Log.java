@@ -17,6 +17,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
 
+import androidx.annotation.Nullable;
+
 import static com.arover.app.util.DataUtil.bytesToHexString;
 import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
 
@@ -26,7 +28,7 @@ import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
  */
 public class Log {
 
-    private static final String TAG = "Log";
+    private static final String TAG = "AroverLogger";
 
     public static String rootDir;
     public static String crashLogDir;
@@ -106,6 +108,20 @@ public class Log {
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.wtf(tag, logmsg);
         writeToFile(tag + " " + logmsg, Level.FATAL);
+    }
+
+    public static void wtf(String tag, String msg, Throwable t) {
+        String trace = getTrace(t);
+        if (msg == null)
+            f(tag, trace);
+        else
+            f(tag, msg + "\n" + trace);
+    }
+
+    public static void wtf(String tag, String msg) {
+        String log = msg == null ? "null":msg;
+        if (sLogcatEnabled) android.util.Log.wtf(tag, log);
+        writeToFile(tag + " " + log, Level.FATAL);
     }
 
     public static void e(String tag, Throwable t) {
@@ -392,39 +408,36 @@ public class Log {
      *               "app_xxx" etc.
      *
      */
-    public static String getLogFolderByProcess(Context context, String processName, String prefix) {
+    public static String getLogFolderByProcess(Context context,
+                                               @Nullable String processName,
+                                               @Nullable String prefix) {
 
-        boolean isMainProcess = context.getPackageName().equals(processName);
-        String defaultPrefix = "app_";
+        boolean isMainProcess = context.getPackageName().equals(processName) || processName == null;
+        StringBuilder defaultPrefix = new StringBuilder();
         if(prefix != null){
-            defaultPrefix = prefix;
-        }
-        String folderName = null;
-        if(isMainProcess){
-            folderName = defaultPrefix + "main";
+            defaultPrefix.append(prefix);
         } else {
-            if(processName != null && processName.contains(":")){
+            defaultPrefix.append("app_");
+        }
+        StringBuilder folderName = null;
+        if(isMainProcess){
+            folderName = defaultPrefix.append("main");
+        } else {
+            if(processName.contains(":")){
                 String[] names = processName.split(":");
                 if(names.length >= 2){
-                    folderName = defaultPrefix +names[1];
+                    folderName = defaultPrefix.append(names[1]);
                 }
             }
             if(folderName ==  null){
-                folderName = defaultPrefix + Process.myPid();
+                folderName = defaultPrefix.append(Process.myPid());
             }
         }
-        return folderName;
+        return folderName.toString();
     }
 
     public static void setOnLogCompressListener(OnLogCompressDoneListener onLogCompressListener) {
         Log.onLogCompressListener = onLogCompressListener;
     }
 
-    public static boolean isCompressing(){
-        if(logWriterThread == null){
-            android.util.Log.w(TAG,"isCompressing logWriterThread == null");
-            return false;
-        }
-        return logWriterThread.isCompressing;
-    }
 }

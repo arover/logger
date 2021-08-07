@@ -1,7 +1,5 @@
 package com.arover.app.crypto;
 
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
 import android.util.Base64;
 
 import java.security.KeyFactory;
@@ -10,7 +8,6 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.cert.CertPathBuilder;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -24,40 +21,28 @@ public class RsaCipher {
     public static final String RSA = "RSA";
     public static final String TRANSFORMATION = "RSA/ECB/OAEPwithSHA-256andMGF1Padding";
 
-    public static byte[] encrypt(byte[] data, byte[] publicKey) {
+    public static byte[] encrypt(byte[] data, byte[] publicKey) throws Exception {
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKey);
+        KeyFactory keyFactory = KeyFactory.getInstance(RSA);
+        PublicKey pubKey = keyFactory.generatePublic(keySpec);
 
-        try {
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKey);
-            KeyFactory keyFactory = null;
-            keyFactory = KeyFactory.getInstance(RSA);
-            PublicKey pubKey = keyFactory.generatePublic(keySpec);
+        Cipher cp = Cipher.getInstance(TRANSFORMATION);
+        cp.init(Cipher.ENCRYPT_MODE, pubKey);
+        return cp.doFinal(data);
 
-            Cipher cp = Cipher.getInstance(TRANSFORMATION);
-            cp.init(Cipher.ENCRYPT_MODE, pubKey);
-            return cp.doFinal(data);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return data;
-        }
     }
 
 
-    public static byte[] decrypt(byte[] encrypted, byte[] privateKey) {
+    public static byte[] decrypt(byte[] encrypted, byte[] privateKey) throws Exception {
 
-        try {
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKey);
-            KeyFactory kf = null;
-            kf = KeyFactory.getInstance(RSA);
-            PrivateKey keyPrivate = kf.generatePrivate(keySpec);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKey);
+        KeyFactory kf = KeyFactory.getInstance(RSA);
+        PrivateKey keyPrivate = kf.generatePrivate(keySpec);
 
-            Cipher cp = Cipher.getInstance(TRANSFORMATION);
-            cp.init(Cipher.DECRYPT_MODE, keyPrivate);
+        Cipher cp = Cipher.getInstance(TRANSFORMATION);
+        cp.init(Cipher.DECRYPT_MODE, keyPrivate);
 
-            return cp.doFinal(encrypted);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return encrypted;
-        }
+        return cp.doFinal(encrypted);
     }
 
     public static KeyPair createKeyPair() throws NoSuchAlgorithmException {
