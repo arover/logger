@@ -3,7 +3,7 @@
 android local filesystem persistence logger. 
 ## features: 
 - RSA & AES encryption
-- daily roation
+- daily roation & auto ratation by file size
 - auto remove old logs
 - customize log folder
 - multi process logging
