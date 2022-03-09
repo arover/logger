@@ -16,7 +16,6 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 
 import androidx.annotation.Nullable;
 
@@ -27,16 +26,14 @@ import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
  * File storage logger
  * logger wrapper File storage File logger.
  */
-public class Log {
+public class Alog {
 
     private static final String TAG = "AroverLogger";
-
     public static String rootDir;
-    public static String crashLogDir;
+//    public static String crashLogDir;
 
     static LogWriterThread logWriterThread;
     private static int sLogLvl = Level.DEBUG.code;
-    private static StringBuilder buffer = new StringBuilder();
     public static boolean sLogcatEnabled;
     public static String sLogLvlName;
     static String sLogDir;
@@ -85,10 +82,6 @@ public class Log {
         return rootDir;
     }
 
-    public static String getCrashLogDir() {
-        return crashLogDir;
-    }
-
     public static boolean isInitialized() {
         return sInitialized;
     }
@@ -108,7 +101,7 @@ public class Log {
     public static void f(String tag, String msg) {
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.wtf(tag, logmsg);
-        writeToFile(tag + " " + logmsg, Level.FATAL);
+        saveLog(tag + " " + logmsg, Level.FATAL);
     }
 
     public static void wtf(String tag, String msg, Throwable t) {
@@ -122,7 +115,7 @@ public class Log {
     public static void wtf(String tag, String msg) {
         String log = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.wtf(tag, log);
-        writeToFile(tag + " " + log, Level.FATAL);
+        saveLog(tag + " " + log, Level.FATAL);
     }
 
     public static void e(String tag, Throwable t) {
@@ -148,7 +141,7 @@ public class Log {
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.e(tag, logmsg);
 
-        writeToFile(tag + " " + logmsg, Level.ERROR);
+        saveLog(tag + " " + logmsg, Level.ERROR);
     }
 
     public static void w(String tag, Throwable t) {
@@ -171,7 +164,7 @@ public class Log {
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.w(tag, logmsg);
 
-        writeToFile(tag + " " + msg, Level.WARN);
+        saveLog(tag + " " + msg, Level.WARN);
     }
 
     public static void i(String tag, Throwable t) {
@@ -197,7 +190,7 @@ public class Log {
         }
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.i(tag, logmsg);
-        writeToFile(tag + " " + logmsg, Level.INFO);
+        saveLog(tag + " " + logmsg, Level.INFO);
     }
 
     public static void d(String tag, Throwable t) {
@@ -233,7 +226,7 @@ public class Log {
         if (sLogLvl < Level.DEBUG.code) return;
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.d(tag, logmsg);
-        writeToFile(tag + " " + logmsg, Level.DEBUG);
+        saveLog(tag + " " + logmsg, Level.DEBUG);
     }
 
     public static void v(String tag, Throwable t) {
@@ -257,11 +250,11 @@ public class Log {
         String logmsg = msg == null ? "null":msg;
         if (sLogcatEnabled) android.util.Log.v(tag, logmsg);
 
-        writeToFile(tag + " " + logmsg, Level.VERBOSE);
+        saveLog(tag + " " + logmsg, Level.VERBOSE);
     }
 
 
-    private static void writeToFile(String log, Level level) {
+    private static void saveLog(String log, Level level) {
         if (logWriterThread != null) {
             logWriterThread.writeLog(level, log);
         } else {
@@ -400,44 +393,10 @@ public class Log {
         return logWriterThread.getPreviousLogFileName();
     }
 
-    /**
-     *  get log folder name by process name,
-     * @param context
-     * @param prefix optional, nullable, default is "app_" , main process log will
-     *               saved in "app_main", process "xxx" 's log will saved in
-     *               "app_xxx" etc.
-     *
-     */
-    public static String getLogFolderByProcess(Context context,
-                                               @Nullable String processName,
-                                               @Nullable String prefix) {
 
-        boolean isMainProcess = context.getPackageName().equals(processName) || processName == null;
-        StringBuilder defaultPrefix = new StringBuilder();
-        if(prefix != null){
-            defaultPrefix.append(prefix);
-        } else {
-            defaultPrefix.append("app_");
-        }
-        StringBuilder folderName = null;
-        if(isMainProcess){
-            folderName = defaultPrefix.append("main");
-        } else {
-            if(processName.contains(":")){
-                String[] names = processName.split(":");
-                if(names.length >= 2){
-                    folderName = defaultPrefix.append(names[1]);
-                }
-            }
-            if(folderName ==  null){
-                folderName = defaultPrefix.append(Process.myPid());
-            }
-        }
-        return folderName.toString();
-    }
 
     public static void setOnLogCompressListener(OnLogCompressDoneListener onLogCompressListener) {
-        Log.onLogCompressListener = onLogCompressListener;
+        Alog.onLogCompressListener = onLogCompressListener;
     }
 
 }

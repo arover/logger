@@ -19,7 +19,6 @@ public class LoggerManager {
     private static final String TAG = "LoggerManager";
     private static final int DEFAULT_MAX_LOG_IN_DAYS = 10;
     private static final long DELETE_LOG_DELAY = 20 * 1000;
-    public static final String DEFAULT_CRASH_FOLDER_NAME = "log_crash";
     private final Context context;
     private String logDirFullPath;
     private boolean enableLogcat;
@@ -36,28 +35,48 @@ public class LoggerManager {
             mgr = new LoggerManager(context);
         }
 
+        /**
+         * config log level
+         * @param level
+         * @return
+         */
         public Builder level(Level level) {
             mgr.setLevel(level);
             return this;
         }
 
+        /**
+         * config root log folder
+         * @param folderName
+         * @return
+         */
         public Builder rootFolder(String folderName) {
             mgr.rootFolder = folderName;
             return this;
         }
 
+        /**
+         * config log folder for process.
+         * @param prefixName
+         * @return
+         */
         public Builder processLogFolder(String prefixName) {
             mgr.processLogFolder = prefixName;
             return this;
         }
 
+        /**
+         * enable logcat or not
+         * @param isEnable
+         * @return
+         */
         public Builder enableLogcat(boolean isEnable) {
             mgr.enableLogcat = isEnable;
             return this;
         }
 
         /**
-         * empty or null will disable log encryption. default is null;
+         * empty or null will public key will disable log encryption. default is disabled;
          *
          * @param publicKey nullable, RSA public key hex String.
          */
@@ -66,6 +85,11 @@ public class LoggerManager {
             return this;
         }
 
+        /**
+         * executor for logger's background or delayed task.
+         * @param executor
+         * @return
+         */
         public Builder logTaskExecutor(LogExecutor executor) {
             mgr.logExecutor = executor;
             return this;
@@ -157,7 +181,7 @@ public class LoggerManager {
             return;
         }
 
-        Log.init(this);
+        Alog.init(this);
     }
 
     private void initStorageFolder(String rootFolder, String processLogFolder) {
@@ -175,20 +199,9 @@ public class LoggerManager {
 
 
     private void initDir(File dir, String rootFolder, String processLogFolder) {
-        Log.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
-        String path = dir + "/" + rootFolder + "/" + processLogFolder;
+        Alog.rootDir = dir.getAbsolutePath() + File.separator + rootFolder;
+        String path = dir + File.separator + rootFolder + File.separator + processLogFolder;
         android.util.Log.i(TAG, "log folder:" + path);
-        String crashLogPath = dir + "/" + rootFolder + "/" + DEFAULT_CRASH_FOLDER_NAME;
-        File crashLogDir = new File(crashLogPath);
-
-        if (!crashLogDir.exists()) {
-            boolean created = crashLogDir.mkdirs();
-            if(!created){
-                android.util.Log.e(TAG, "initDir: create log folder failed." );
-                return;
-            }
-        }
-        Log.crashLogDir = crashLogPath;
         File logDir = new File(path);
 
         if (!logDir.exists() && !logDir.mkdirs()) {
@@ -217,17 +230,17 @@ public class LoggerManager {
         } else {
             days = logFileDays;
         }
-        if (Log.getRootDir() == null) {
-            Log.e(TAG, "storage folder is null.");
+        if (Alog.getRootDir() == null) {
+            Alog.e(TAG, "storage folder is null.");
             return;
         }
 
-        Log.d(TAG, "deleteOldLogs days="+logFileDays+",dir="+Log.getRootDir());
+        Alog.d(TAG, "deleteOldLogs days="+logFileDays+",dir="+ Alog.getRootDir());
 
         if (logExecutor != null) {
-            logExecutor.execute(new DeleteLogTask(Log.getRootDir(), days));
+            logExecutor.execute(new DeleteLogTask(Alog.getRootDir(), days));
         } else {
-            new Thread(new DeleteLogTask(Log.getRootDir(), days)).start();
+            new Thread(new DeleteLogTask(Alog.getRootDir(), days)).start();
         }
     }
 
@@ -256,9 +269,9 @@ public class LoggerManager {
         @Override
         public void run() {
             File file = new File(folder);
-            Log.i(TAG, "DeleteLogTask checking old logs in folder = " + file);
+            Alog.i(TAG, "DeleteLogTask checking old logs in folder = " + file);
             if (!file.exists()) {
-                Log.e(TAG, "run DeleteLogTask root folder not exist.");
+                Alog.e(TAG, "run DeleteLogTask root folder not exist.");
                 return;
             }
             removeLogs(file);
@@ -274,7 +287,7 @@ public class LoggerManager {
 
             for (File folder : folders) {
 
-                Log.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
+                Alog.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
 
                 File[] logFiles = folder.listFiles(f ->
                         (f.getName().contains("zip") || f.getName().contains(".log")));
@@ -284,14 +297,14 @@ public class LoggerManager {
                 for (File logFile : logFiles) {
                     if (isNDaysBeforeFiles(days, logFile)) {
                         boolean deleted = logFile.delete();
-                        Log.i(TAG, "DeleteLogTask delete logFile=" + logFile+",deleted="+deleted);
+                        Alog.i(TAG, "DeleteLogTask delete logFile=" + logFile+",deleted="+deleted);
                     }
                 }
             }
         }
 
         private boolean isNDaysBeforeFiles(int days, File file) {
-            return System.currentTimeMillis() - file.lastModified() > days * DAY_IN_MILLS;
+            return System.currentTimeMillis() - file.lastModified() > (long) days * DAY_IN_MILLS;
         }
     }
 

@@ -11,7 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.arover.app.crypto.RsaCipher;
-import com.arover.app.logger.Log;
+import com.arover.app.logger.Alog;
 import com.arover.app.util.DataUtil;
 import com.arover.app.util.IoUtil;
 
@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
-            Log.d(TAG, "test log interval = " + System.currentTimeMillis());
+            Alog.d(TAG, "test log interval = " + System.currentTimeMillis());
             handler.sendEmptyMessageDelayed(0, 1000);
         }
     };
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Log.d(TAG, "onCreate");
+        Alog.d(TAG, "onCreate");
 
         setContentView(R.layout.activity_main);
 
@@ -96,13 +96,13 @@ public class MainActivity extends AppCompatActivity {
 //        });
 
         findViewById(R.id.log).setOnClickListener(v -> {
-            Log.d(TAG, "on press log" + System.currentTimeMillis());
+            Alog.d(TAG, "on press log" + System.currentTimeMillis());
         });
         findViewById(R.id.gen_key_btn).setOnClickListener(v -> {
             createKeyPair();
         });
         findViewById(R.id.flush_btn).setOnClickListener(v -> {
-            Log.flush();
+            Alog.flush();
         });
 
         //log test print log per second.
@@ -269,7 +269,7 @@ public class MainActivity extends AppCompatActivity {
             android.util.Log.d(TAG, "decryptLog " + file);
 
             try {
-                Log.decryptLogFile(appContext, fileUri, privateKey);
+                Alog.decryptLogFile(appContext, fileUri, privateKey);
                 new Handler(Looper.getMainLooper()).post(() -> {
                     Toast.makeText(appContext, "decrypt log file success", Toast.LENGTH_SHORT)
                             .show();
@@ -287,19 +287,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d(TAG, "onResume");
+        Alog.d(TAG, "onResume");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        Log.d(TAG, "onPause");
+        Alog.d(TAG, "onPause");
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Log.flush();
+        Alog.flush();
         synchronized (disposables) {
             cleanDisposed();
         }
@@ -309,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         handler.removeCallbacksAndMessages(null);
         handler = null;
-        Log.flush();
+        Alog.flush();
 
         synchronized (disposables) {
             for (Disposable it : disposables) {

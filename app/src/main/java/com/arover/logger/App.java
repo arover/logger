@@ -1,24 +1,15 @@
 package com.arover.logger;
 
-import android.app.ActivityManager;
 import android.app.Application;
-import android.content.Context;
-import android.os.Process;
 
-import com.arover.app.logger.Log;
+import com.arover.app.logger.Alog;
 import com.arover.app.logger.LogExecutor;
 import com.arover.app.logger.LoggerManager;
+import com.arover.app.util.ProcessUtil;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.util.List;
-import java.util.Objects;
 
-import androidx.annotation.NonNull;
-import io.reactivex.rxjava3.android.plugins.RxAndroidPlugins;
-import io.reactivex.rxjava3.annotations.Nullable;
 import io.reactivex.rxjava3.exceptions.UndeliverableException;
-import io.reactivex.rxjava3.functions.Consumer;
 import io.reactivex.rxjava3.plugins.RxJavaPlugins;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 
@@ -35,7 +26,7 @@ public class App extends Application {
         super.onCreate();
         // logger is not init ,write it to memory buffer, after init, it will write to file.
         // And DO NOT write too many logs because the buffer size is limited.
-        Log.d(TAG,"on Create");
+        Alog.d(TAG,"on Create");
         // change this to your public key, and save your private key
         // to Android/data/com.arover.logger/files/log_private.key
         // you can generate encryption keys by build this app.
@@ -45,11 +36,11 @@ public class App extends Application {
         //flush log when an undeliverable error occurs
         addRxjavaDefaultErrHandler();
         //multi process support.
-        String processName = getProcessName(this);
+        String processName = ProcessUtil.getProcessName(this);
         //save logs of processes separately.
-        String folderName = Log.getLogFolderByProcess(this, processName,  "process_");
+        String folderName = ProcessUtil.getProcessNameWithPrefix(this, processName,  "process_");
 
-        new LoggerManager.Builder(this)
+        LoggerManager mgr = new LoggerManager.Builder(this)
                 //required.
                 .enableLogcat(BuildConfig.DEBUG)
                 //required.
@@ -62,16 +53,14 @@ public class App extends Application {
                 .processLogFolder(folderName) //
                 //optional.set rxjava io scheduler for perform background io tasks execution to
                 // avoid new thread creation.
-                .logTaskExecutor(new LogExecutor(){
-                    @Override
-                    public void execute(Runnable runnable) {
-                        Schedulers.io().scheduleDirect(runnable);
-                    }
-                })
-                .build()
-                // delete old logs
-                .deleteOldLogsDelayed(7);
-        Log.d(TAG, "app is launching...");
+                .build();
+
+        if(getPackageName().equals(processName)) {
+            // delete old logs
+            mgr.deleteOldLogsDelayed(7);
+        }
+
+        Alog.d(TAG, "app is launching...");
     }
 
     private void flushLogWhenUncaughtError() {
@@ -79,7 +68,8 @@ public class App extends Application {
         Thread.UncaughtExceptionHandler eh = Thread.getDefaultUncaughtExceptionHandler();
         Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
             // flush log buffer on caught ab UncaughtException.
-            Log.flush();
+            Alog.wtf(TAG,"uncaught Exception",e);
+            Alog.flush();
             //
             if (eh != null) {
                 eh.uncaughtException(t, e);
@@ -113,25 +103,10 @@ public class App extends Application {
                 }
                 return;
             }
-            Log.w(TAG,"rxjava: Undeliverable exception received, not sure what to do", e);
+            Alog.w(TAG,"rxjava: Undeliverable exception received, not sure what to do", e);
             //flush log buffer when
-            Log.flush();
+            Alog.flush();
         });
     }
 
-    public @Nullable String getProcessName(Context ctx) {
-        ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> runningAppProcesses = am.getRunningAppProcesses();
-        if (runningAppProcesses == null) {
-            return null;
-        }
-
-        for (ActivityManager.RunningAppProcessInfo info : runningAppProcesses) {
-            if (info.pid == Process.myPid()) {
-                return info.processName;
-            }
-        }
-
-        return null;
-    }
 }
