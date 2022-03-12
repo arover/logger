@@ -22,52 +22,54 @@ class LogCompressor implements Runnable {
     private final Handler logThreadHandler;
     private final String logFolder;
     private final String currentWritingLogFile;
+    private final String logFileExt;
 
-    public LogCompressor(Handler handler, String dir, String currentLogFileName) {
+    public LogCompressor(Handler handler, String dir, String currentLogFileName, String fileExt) {
         logThreadHandler = handler;
         logFolder = dir;
         currentWritingLogFile = currentLogFileName;
+        logFileExt = fileExt;
     }
 
     @Override
     public void run() {
         try {
-            FileFilter logFilter = pathname -> pathname.getName().endsWith(".log");
+            FileFilter logFilter = pathname -> pathname.getName().endsWith(logFileExt);
 
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
             if(logFiles == null){
-                Log.v(TAG,"no logs");
+                Alog.v(TAG,"no logs");
                 return;
             }
 
             for (File logFile : logFiles) {
 
                 if (logFile.getName().endsWith(currentWritingLogFile)) {
-                    Log.v(TAG, "skip current log file=" + logFile.getName());
+                    Alog.v(TAG, "skip current log file=" + logFile.getName());
                     continue;
                 }
 
-                Log.d(TAG, "found log file=" + logFile.getName() +" compressing...");
+                Alog.d(TAG, "found log file=" + logFile.getName() +" compressing...");
 
-                zipFile(logFile.getName(), logFile.getName().replaceFirst("\\.log", ".zip"));
+                zipFile(logFile.getName(), logFile.getName().replaceFirst(logFileExt, ".zip"));
 
                 if (!logFile.delete()) {
-                    Log.w(TAG, "failed to delete old log:" + logFile.getName());
+                    Alog.w(TAG, "failed to delete old log:" + logFile.getName());
                 }
             }
         } catch (Exception e) {
-            Log.e(TAG, "findAllOldLogsAndCompress:" + e.getMessage(), e);
+            Alog.e(TAG, "findAllOldLogsAndCompress:" + e.getMessage(), e);
         }
 
-        Log.d(TAG, "findAllOldLogsAndCompress: logThreadHandler is null? " + (logThreadHandler == null));
+        Alog.d(TAG, "findAllOldLogsAndCompress: logThreadHandler is null? " + (logThreadHandler == null));
         if (logThreadHandler != null) {
             logThreadHandler.sendEmptyMessage(LogWriterThread.MSG_COMPRESS_COMPLETED);
         }
     }
 
     private void zipFile(String filename, String zipFileName) {
-        Log.d(TAG, "zip filename:" + filename + ",zip file name:" + zipFileName);
+        Alog.d(TAG, "zip filename:" + filename + ",zip file name:" + zipFileName);
         FileOutputStream dest = null;
         ZipOutputStream out = null;
         FileInputStream fi = null;
@@ -89,7 +91,7 @@ class LogCompressor implements Runnable {
             }
             out.closeEntry();
         } catch (Exception e) {
-            Log.e(TAG, "zip error:", e);
+            Alog.e(TAG, "zip error:", e);
         } finally {
             IoUtil.closeQuietly(fi);
             IoUtil.closeQuietly(origin);

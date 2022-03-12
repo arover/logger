@@ -31,8 +31,8 @@ public class LogStringGenerator implements Runnable{
     @Override
     public void run() {
         String logString = tag + " " +String.format(format, args);
-        Log.logWriterThread.writeLog(level, logString);
-        if(Log.sLogcatEnabled)
+        Alog.logWriterThread.writeLog(level, logString);
+        if(Alog.sLogcatEnabled)
             android.util.Log.d(tag,logString);
     }
 }

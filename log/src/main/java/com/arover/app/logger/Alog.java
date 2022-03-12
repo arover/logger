@@ -26,7 +26,7 @@ import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
  * File storage logger
  * logger wrapper File storage File logger.
  */
-public class Log {
+public class Alog {
 
     private static final String TAG = "AroverLogger";
 
@@ -116,6 +116,7 @@ public class Log {
             f(tag, trace);
         else
             f(tag, msg + "\n" + trace);
+        flush();
     }
 
     public static void wtf(String tag, String msg) {
@@ -437,7 +438,7 @@ public class Log {
     }
 
     public static void setOnLogCompressListener(OnLogCompressDoneListener onLogCompressListener) {
-        Log.onLogCompressListener = onLogCompressListener;
+        Alog.onLogCompressListener = onLogCompressListener;
     }
 
 }

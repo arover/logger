@@ -1,16 +1,21 @@
-# Fully Functional local filesystem Logger for Android
-<pre>
-    <b>Logging First!!</b>
-    <p>
-        logger is a foundation component for your app, it's a key to identify or resolve your app's
-    runtime problem. 
-
-        this logger is fully functional, support features like encryption, daily rotation etc. and it's robust!.
-    </p>
-</pre>
+# Android高性能多功能日志库
 
 ## Usage
+=======
+## 功能 & 特色
+- 初始化时之前即可打印日志，日志将保存至内存，文件日志配置后再自动输出至文件。
+- 日志加密 （RSA 和 AES 两种加密方式结合后加密日志，兼顾安全与高效）
+- 日志自动压缩
+- 旧日志定期删除
+- 自定义日志文件夹
+- 支持多进程
+- 无JNI无mmap，纯java，无jni导致崩溃。
 
+## 用法
+
+```groovy
+
+```
 ```java
 
 import com.arover.app.logger.Log;
@@ -20,29 +25,16 @@ public class App extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        
-        String processName = getProcessName(this);
-        //save logs of processes separately.
-        //if your app is single process app, simply set processLogFolder as ""
-        String folderName = Log.getLogFolderByProcess(this, processName,  "log_demo_");
+        Alog.d(TAG,"onCreate");
+
+        String publicKey = "30820122300d06092a864886f70d01010105000382010f003082010a0282010100cf9d8c3a47e7e6268e12d87f4eb09ff503fbb41dfa78e1e473e636967e3998dbb6e74e363f7a241d5b994359c3c134b2f1e4f9e6af197137e921b3870f9c0d798790d00f0b7e1eab6aa0965b971dca362de9b0d38d53cf78b6203a28210e00521c143fe230c387edb5a9868e58b60a871906793bc5cc288dbeb740963d844121e571622080ba6c40df1f9e22a8ccd76837e3e74d8f4c6a693b8200db29227268503071bc976f979bbec2c8666ef535d4b4a5eb479fc139e24c7046c75bff1a73eacf8d0c9136ad0afff73911f7049c1aa4b8af1867c1a2a45707e6f2c35e36ff955ee50d500e415854432e4960ca88a70111de72eb96848e7e452a07c45f17f50203010001";
 
         new LoggerManager.Builder(this)
-                .enableLogcat(BuildConfig.DEBUG)
-                .level(BuildConfig.DEBUG ? LoggerManager.Level.VERBOSE : LoggerManager.Level.DEBUG)
-                // disable encryption in debug build.
-                .encryptWithPublicKey(publicKey)
-                // logs' root folder name, it's path is /sdcard/Android/data/[applicationId]/files/logs
-                .rootFolder("logs")
-                // process's log folder name(in root folder)
-                //it's path is /sdcard/Android/data/[applicationId]/files/logs/log_demo_main/
-                .processLogFolder(folderName)
-                //use rxjava perform io tasks to avoid create new thread.
-                .logTaskExecutor(new LogExecutor(){
-                    @Override
-                    public void execute(Runnable runnable) {
-                        Schedulers.io().scheduleDirect(runnable);
-                    }
-                })
+                .enableLogcat(BuildConfig.DEBUG) //是否开启logcat输出
+                .level(LoggerManager.Level.DEBUG) //日志级别
+                .encryptWithPublicKey(publicKey) //可选参数，是否加密，密钥为空或者null则不开启加密。生成密钥请构建app然后生成。
+//                .rootFolder("Log") //可选参数，默认日志文件夹名为logs。
+//                .processLogFolder(folderName) //可选参数，自定义各个进程的日志文件夹名。
                 .build()
                 .deleteOldLogsDelayed(7);
         // use it like android.util.Log.

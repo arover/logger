@@ -5,7 +5,10 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.arover.app.util.ProcessUtil;
+
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,19 +31,39 @@ public class LoggerManager {
     private String rootFolder = "logs";
     private String publicKey;
     private String processLogFolder = "";
+    private static String ext = ".log";
 
     public static class Builder {
         private final LoggerManager mgr;
 
         public Builder(Context context) {
             mgr = new LoggerManager(context);
+            //默认支持多进程。
+            String processName = ProcessUtil.getProcessName(context);
+            mgr.processLogFolder = ProcessUtil.getProcessNameWithPrefix(context, processName,  "process_");
+            mgr.rootFolder = "logs";
         }
 
         public Builder level(Level level) {
             mgr.setLevel(level);
             return this;
         }
-
+        /**
+         * config root log folder
+         * @param logExt
+         * @return
+         */
+        public Builder logFileExt(String logExt) {
+            if(!logExt.startsWith("."))
+                throw new InvalidParameterException("日志后缀名需包含\".\", 如.log, .txt");
+            ext = logExt;
+            return this;
+        }
+        /**
+         * config root log folder
+         * @param folderName
+         * @return
+         */
         public Builder rootFolder(String folderName) {
             mgr.rootFolder = folderName;
             return this;
@@ -91,6 +114,10 @@ public class LoggerManager {
 
     public String getPublicKey() {
         return publicKey;
+    }
+
+    public String getLogFileExt() {
+        return ext;
     }
 
     public void setLogPrinterWorker(LogExecutor logGenerator) {
@@ -157,7 +184,7 @@ public class LoggerManager {
             return;
         }
 
-        Log.init(this);
+        Alog.init(this);
     }
 
     private void initStorageFolder(String rootFolder, String processLogFolder) {
@@ -175,7 +202,7 @@ public class LoggerManager {
 
 
     private void initDir(File dir, String rootFolder, String processLogFolder) {
-        Log.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
+        Alog.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
         String path = dir + "/" + rootFolder + "/" + processLogFolder;
         android.util.Log.i(TAG, "log folder:" + path);
         String crashLogPath = dir + "/" + rootFolder + "/" + DEFAULT_CRASH_FOLDER_NAME;
@@ -188,7 +215,7 @@ public class LoggerManager {
                 return;
             }
         }
-        Log.crashLogDir = crashLogPath;
+        Alog.crashLogDir = crashLogPath;
         File logDir = new File(path);
 
         if (!logDir.exists() && !logDir.mkdirs()) {
@@ -217,17 +244,17 @@ public class LoggerManager {
         } else {
             days = logFileDays;
         }
-        if (Log.getRootDir() == null) {
-            Log.e(TAG, "storage folder is null.");
+        if (Alog.getRootDir() == null) {
+            Alog.e(TAG, "storage folder is null.");
             return;
         }
 
-        Log.d(TAG, "deleteOldLogs days="+logFileDays+",dir="+Log.getRootDir());
+        Alog.d(TAG, "deleteOldLogs days="+logFileDays+",dir="+ Alog.getRootDir());
 
         if (logExecutor != null) {
-            logExecutor.execute(new DeleteLogTask(Log.getRootDir(), days));
+            logExecutor.execute(new DeleteLogTask(Alog.getRootDir(), days));
         } else {
-            new Thread(new DeleteLogTask(Log.getRootDir(), days)).start();
+            new Thread(new DeleteLogTask(Alog.getRootDir(), days)).start();
         }
     }
 
@@ -256,9 +283,9 @@ public class LoggerManager {
         @Override
         public void run() {
             File file = new File(folder);
-            Log.i(TAG, "DeleteLogTask checking old logs in folder = " + file);
+            Alog.i(TAG, "DeleteLogTask checking old logs in folder = " + file);
             if (!file.exists()) {
-                Log.e(TAG, "run DeleteLogTask root folder not exist.");
+                Alog.e(TAG, "run DeleteLogTask root folder not exist.");
                 return;
             }
             removeLogs(file);
@@ -274,17 +301,17 @@ public class LoggerManager {
 
             for (File folder : folders) {
 
-                Log.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
+                Alog.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
 
                 File[] logFiles = folder.listFiles(f ->
-                        (f.getName().contains("zip") || f.getName().contains(".log")));
+                        (f.getName().contains("zip") || f.getName().contains(LoggerManager.ext)));
 
                 if (logFiles == null) continue;
 
                 for (File logFile : logFiles) {
                     if (isNDaysBeforeFiles(days, logFile)) {
                         boolean deleted = logFile.delete();
-                        Log.i(TAG, "DeleteLogTask delete logFile=" + logFile+",deleted="+deleted);
+                        Alog.i(TAG, "DeleteLogTask delete logFile=" + logFile+",deleted="+deleted);
                     }
                 }
             }
