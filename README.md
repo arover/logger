@@ -14,6 +14,9 @@
 ## 用法
 
 ```groovy
+dependencies {
+		implementation 'com.github.arover:logger:1.3'
+	}
 
 ```
 ```java
