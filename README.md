@@ -31,7 +31,7 @@ allprojects {
 }
 // step2
 dependencies {
-    implementation 'com.github.arover:logger:2.0.0'
+    implementation 'com.github.arover:logger:2.0.1'
 }
 ```
 
