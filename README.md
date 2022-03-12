@@ -22,10 +22,10 @@
 ## 用法
 
 ```groovy
-dependencies {
-		implementation 'com.github.arover:logger:1.3'
-	}
 
+dependencies {
+		implementation 'com.github.arover:logger:2.0.0'
+	}
 ```
 ```java
 
@@ -52,5 +52,9 @@ public class App extends Application {
         Log.d(TAG,"app is launching...");
     }
 }
+```
+## 解密
+```shell
+>java -jar decrypt.jar
 ```
 
