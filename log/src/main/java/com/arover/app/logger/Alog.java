@@ -31,7 +31,7 @@ public class Alog {
     private static final String TAG = "AroverLogger";
 
     public static String rootDir;
-    public static String crashLogDir;
+
 
     static LogWriterThread logWriterThread;
     private static int sLogLvl = Level.DEBUG.code;
@@ -82,10 +82,6 @@ public class Alog {
 
     public static String getRootDir() {
         return rootDir;
-    }
-
-    public static String getCrashLogDir() {
-        return crashLogDir;
     }
 
     public static boolean isInitialized() {

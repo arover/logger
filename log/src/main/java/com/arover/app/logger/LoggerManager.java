@@ -22,7 +22,7 @@ public class LoggerManager {
     private static final String TAG = "LoggerManager";
     private static final int DEFAULT_MAX_LOG_IN_DAYS = 10;
     private static final long DELETE_LOG_DELAY = 20 * 1000;
-    public static final String DEFAULT_CRASH_FOLDER_NAME = "log_crash";
+
     private final Context context;
     private String logDirFullPath;
     private boolean enableLogcat;
@@ -204,18 +204,8 @@ public class LoggerManager {
     private void initDir(File dir, String rootFolder, String processLogFolder) {
         Alog.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
         String path = dir + "/" + rootFolder + "/" + processLogFolder;
-        android.util.Log.i(TAG, "log folder:" + path);
-        String crashLogPath = dir + "/" + rootFolder + "/" + DEFAULT_CRASH_FOLDER_NAME;
-        File crashLogDir = new File(crashLogPath);
+//        android.util.Log.i(TAG, "log folder:" + path);
 
-        if (!crashLogDir.exists()) {
-            boolean created = crashLogDir.mkdirs();
-            if(!created){
-                android.util.Log.e(TAG, "initDir: create log folder failed." );
-                return;
-            }
-        }
-        Alog.crashLogDir = crashLogPath;
         File logDir = new File(path);
 
         if (!logDir.exists() && !logDir.mkdirs()) {
