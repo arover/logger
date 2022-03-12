@@ -22,11 +22,19 @@
 ## 用法
 
 ```groovy
-
+//step1
+allprojects {
+    repositories {
+        
+        maven { url 'https://jitpack.io' }
+    }
+}
+// step2
 dependencies {
-		implementation 'com.github.arover:logger:2.0.0'
-	}
+    implementation 'com.github.arover:logger:2.0.0'
+}
 ```
+
 ```java
 
 import com.arover.app.logger.Log;
