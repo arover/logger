@@ -124,21 +124,6 @@ public class LogWriterThread extends HandlerThread {
         };
         Alog.i(TAG, "LogWriterThread started level=" + Alog.sLogLvlName + ",logcat enable=" + Alog.sLogcatEnabled);
         Alog.sInitialized = true;
-
-        if(sLogBuffer.position()!=0){
-            handler.sendEmptyMessage(MSG_FLUSH);
-        }
-    }
-
-    static void writeLogToBuffer(String log, LoggerManager.Level level) {
-        String logStr = getLogTime() + level.prefix + log + "\n";
-        byte[] bytes = logStr.getBytes();
-        if(bytes.length <= sLogBuffer.limit() - sLogBuffer.position()){
-            sLogBuffer.put(logStr.getBytes());
-        } else {
-            android.util.Log.e(TAG,"LOGGER: the log buffer is full, " +
-                    "log is discard, do not write too many logs before logger init.");
-        }
     }
 
 
@@ -303,7 +288,8 @@ public class LogWriterThread extends HandlerThread {
             while (true) {
                 currentLogFileName = genLogFileName();
 //                android.util.Log.v(TAG, "createLogWriter file=" + currentLogFileName);
-                String zippedLog = currentLogFileName.replace(".log", ".zip");
+
+                String zippedLog = currentLogFileName.replace(logManager.getLogFileExt(), ".zip");
                 File zippedFile = new File(Alog.sLogDir, zippedLog);
                 if (zippedFile.exists()) {
 //                    android.util.Log.v(TAG, "zippedLog file exist=" + zippedLog);
@@ -364,7 +350,7 @@ public class LogWriterThread extends HandlerThread {
         return prefix + cal.get(Calendar.YEAR)
                 + "-" + (cal.get(Calendar.MONTH) + 1)
                 + ("-") + cal.get(Calendar.DAY_OF_MONTH)
-                + "-" + logFileNo + ".log";
+                + "-" + logFileNo + logManager.getLogFileExt();
     }
 
     private boolean isEncryptMode() {
@@ -374,7 +360,8 @@ public class LogWriterThread extends HandlerThread {
     private void findAllOldLogsAndCompress(boolean isUrgent) {
 
 
-        LogCompressor task = new LogCompressor(handler, logManager.getLogDirFullPath(), currentLogFileName);
+        LogCompressor task = new LogCompressor(handler, logManager.getLogDirFullPath(),
+                currentLogFileName, logManager.getLogFileExt());
 
         if (isUrgent) {
             new Thread(task).start();

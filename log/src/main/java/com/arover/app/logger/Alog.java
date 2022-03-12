@@ -30,7 +30,6 @@ public class Alog {
 
     private static final String TAG = "AroverLogger";
     public static String rootDir;
-//    public static String crashLogDir;
 
     static LogWriterThread logWriterThread;
     private static int sLogLvl = Level.DEBUG.code;
@@ -110,6 +109,7 @@ public class Alog {
             f(tag, trace);
         else
             f(tag, msg + "\n" + trace);
+        flush();
     }
 
     public static void wtf(String tag, String msg) {

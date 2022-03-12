@@ -22,17 +22,19 @@ class LogCompressor implements Runnable {
     private final Handler logThreadHandler;
     private final String logFolder;
     private final String currentWritingLogFile;
+    private final String logFileExt;
 
-    public LogCompressor(Handler handler, String dir, String currentLogFileName) {
+    public LogCompressor(Handler handler, String dir, String currentLogFileName, String fileExt) {
         logThreadHandler = handler;
         logFolder = dir;
         currentWritingLogFile = currentLogFileName;
+        logFileExt = fileExt;
     }
 
     @Override
     public void run() {
         try {
-            FileFilter logFilter = pathname -> pathname.getName().endsWith(".log");
+            FileFilter logFilter = pathname -> pathname.getName().endsWith(logFileExt);
 
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
@@ -50,7 +52,7 @@ class LogCompressor implements Runnable {
 
                 Alog.d(TAG, "found log file=" + logFile.getName() +" compressing...");
 
-                zipFile(logFile.getName(), logFile.getName().replaceFirst("\\.log", ".zip"));
+                zipFile(logFile.getName(), logFile.getName().replaceFirst(logFileExt, ".zip"));
 
                 if (!logFile.delete()) {
                     Alog.w(TAG, "failed to delete old log:" + logFile.getName());

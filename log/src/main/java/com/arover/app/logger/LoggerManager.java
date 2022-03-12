@@ -5,7 +5,10 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.arover.app.util.ProcessUtil;
+
 import java.io.File;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,12 +30,17 @@ public class LoggerManager {
     private String rootFolder = "logs";
     private String publicKey;
     private String processLogFolder = "";
+    private static String ext = ".log";
 
     public static class Builder {
         private final LoggerManager mgr;
 
         public Builder(Context context) {
             mgr = new LoggerManager(context);
+            //默认支持多进程。
+            String processName = ProcessUtil.getProcessName(context);
+            mgr.processLogFolder = ProcessUtil.getProcessNameWithPrefix(context, processName,  "process_");
+            mgr.rootFolder = "logs";
         }
 
         /**
@@ -44,7 +52,17 @@ public class LoggerManager {
             mgr.setLevel(level);
             return this;
         }
-
+        /**
+         * config root log folder
+         * @param logExt
+         * @return
+         */
+        public Builder logFileExt(String logExt) {
+            if(!logExt.startsWith("."))
+                throw new InvalidParameterException("日志后缀名需包含\".\", 如.log, .txt");
+            ext = logExt;
+            return this;
+        }
         /**
          * config root log folder
          * @param folderName
@@ -115,6 +133,10 @@ public class LoggerManager {
 
     public String getPublicKey() {
         return publicKey;
+    }
+
+    public String getLogFileExt() {
+        return ext;
     }
 
     public void setLogPrinterWorker(LogExecutor logGenerator) {
@@ -199,9 +221,10 @@ public class LoggerManager {
 
 
     private void initDir(File dir, String rootFolder, String processLogFolder) {
-        Alog.rootDir = dir.getAbsolutePath() + File.separator + rootFolder;
-        String path = dir + File.separator + rootFolder + File.separator + processLogFolder;
-        android.util.Log.i(TAG, "log folder:" + path);
+        Alog.rootDir = dir.getAbsolutePath() + "/" + rootFolder;
+        String path = dir + "/" + rootFolder + "/" + processLogFolder;
+//        android.util.Log.i(TAG, "log folder:" + path);
+
         File logDir = new File(path);
 
         if (!logDir.exists() && !logDir.mkdirs()) {
@@ -290,7 +313,7 @@ public class LoggerManager {
                 Alog.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
 
                 File[] logFiles = folder.listFiles(f ->
-                        (f.getName().contains("zip") || f.getName().contains(".log")));
+                        (f.getName().contains("zip") || f.getName().contains(LoggerManager.ext)));
 
                 if (logFiles == null) continue;
 
