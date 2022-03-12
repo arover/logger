@@ -124,6 +124,21 @@ public class LogWriterThread extends HandlerThread {
         };
         Alog.i(TAG, "LogWriterThread started level=" + Alog.sLogLvlName + ",logcat enable=" + Alog.sLogcatEnabled);
         Alog.sInitialized = true;
+
+        if(sLogBuffer.position()!=0){
+            handler.sendEmptyMessage(MSG_FLUSH);
+        }
+    }
+
+    static void writeLogToBuffer(String log, LoggerManager.Level level) {
+        String logStr = getLogTime() + level.prefix + log + "\n";
+        byte[] bytes = logStr.getBytes();
+        if(bytes.length <= sLogBuffer.limit() - sLogBuffer.position()){
+            sLogBuffer.put(logStr.getBytes());
+        } else {
+            android.util.Log.e(TAG,"LOGGER: the log buffer is full, " +
+                    "log is discard, do not write too many logs before logger init.");
+        }
     }
 
 
