@@ -1,7 +1,7 @@
-package com.arover.app.crypto;
+package crypto;
 
-import android.util.Base64;
 
+import java.util.Base64;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -61,7 +61,7 @@ public class RsaCipher {
                     .replace("-----END PUBLIC KEY-----", "");
         }
 
-        byte[] keyBytes = Base64.decode(publicKeyString, Base64.DEFAULT);
+        byte[] keyBytes = Base64.getDecoder().decode(publicKeyString);
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 

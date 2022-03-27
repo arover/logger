@@ -1,0 +1,40 @@
+plugins {
+    id 'java-library'
+//    id 'java-library-distribution'
+    id("com.github.johnrengelman.shadow") version "6.0.0"
+}
+//distZip.shouldRunAfter(build)
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.jar {
+    manifest.attributes["Main-Class"] = "com.arover.logger.cmdtool.LogCmdTool"
+}
+
+// Task "distZip" added by plugin "java-library-distribution":
+//distZip.shouldRunAfter(build)
+
+//jar {
+//    // Keep jar clean
+//    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
+//
+//    manifest {
+//        attributes 'Main-Class': 'com.arover.logger.cmdtool.LogCmdTool',
+//                'Class-Path': configurations.runtime.files.collect { "lib/$it.name" }.join(' ')
+//    }
+//// How-to add class path:
+////     https://stackoverflow.com/questions/22659463/add-classpath-in-manifest-using-gradle
+////     https://gist.github.com/simon04/6865179
+//}
+
+//task clearJar(type: Delete) {
+//    delete 'build/libs/lib'
+//}
+//
+//task copyJar(type: Copy) {
+//    from configurations.runtime
+//    into('build/libs/lib')
+//}
