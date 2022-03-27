@@ -19,7 +19,7 @@ public class LogCmdTool {
 
     public static final int ENCRYPT_IV_LEN = 256;
     public static final int ENCRYPT_KEY_LEN = 256;
-    public static final int BUFFER_SIZE = 1024 * 128;
+//    public static final int BUFFER_SIZE = 1024 * 128;
     static final byte MODE_ENCRYPT_LOG = 1;
     static final byte MODE_PLAIN_LOG = 0;
 
@@ -93,10 +93,10 @@ public class LogCmdTool {
                     break;
                 }
                 System.out.print("size = " + len);
-                if (len > BUFFER_SIZE) {
-                    System.out.print("invalid log length, are you sure log file is right??? = " + len);
-                    return;
-                }
+//                if (len > BUFFER_SIZE) {
+//                    System.out.print("invalid log length, are you sure log file is right??? = " + len);
+//                    return;
+//                }
                 byte mode = in.readByte();
                 System.out.print("mode = " + mode);
                 if (mode == MODE_ENCRYPT_LOG) {
