@@ -1,4 +1,4 @@
-# Android高性能多功能日志库
+# Android 多功能日志库
 
 ## Features: 
 - RSA & AES encryption
@@ -17,7 +17,7 @@
 - 旧日志定期删除
 - 自定义日志文件夹
 - 支持多进程
-- 无JNI无mmap，纯java，无jni导致崩溃。
+- 无JNI，纯java。
 
 ## 用法
 
@@ -31,8 +31,9 @@ allprojects {
 }
 // step2
 dependencies {
-    implementation 'com.github.arover:logger:2.0.1'
-}
+		implementation 'com.github.arover:logger:2.1.0'
+	}
+
 ```
 
 ```java
@@ -64,5 +65,17 @@ public class App extends Application {
 ## 解密
 ```shell
 >java -jar decrypt.jar
+```
+
+## 日志解密：
+1. 下载本项目根目录的cmdtool-all.jar
+2. 请用1.8以上版本java执行解密；
+
+Usage: java -jar cmdtool-all.jar your_log_private.key s_xxx_xxx.log
+
+
+示例：
+```shell
+java -jar cmdtool-all.jar your_log_private.key s_xxx_xxx.log
 ```
 

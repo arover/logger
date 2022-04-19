@@ -1,6 +1,7 @@
 package com.arover.app.logger;
 
 import android.os.Handler;
+import android.util.Log;
 
 import com.arover.app.util.IoUtil;
 
@@ -17,7 +18,7 @@ import java.util.zip.ZipOutputStream;
  * log file compress thread.
  */
 class LogCompressor implements Runnable {
-    private static final String TAG = "LogCompressor";
+    private static final String TAG = "Alog::Compressor";
     private static final int BUFFER_SIZE = 4096;
     private final Handler logThreadHandler;
     private final String logFolder;
@@ -25,6 +26,8 @@ class LogCompressor implements Runnable {
     private final String logFileExt;
 
     public LogCompressor(Handler handler, String dir, String currentLogFileName, String fileExt) {
+        Log.d(TAG, "LogCompressor() called with:  dir = [" + dir + "], currentLogFileName = ["
+                + currentLogFileName + "], fileExt = [" + fileExt + "]");
         logThreadHandler = handler;
         logFolder = dir;
         currentWritingLogFile = currentLogFileName;
@@ -39,14 +42,14 @@ class LogCompressor implements Runnable {
             File[] logFiles = new File(logFolder).listFiles(logFilter);
 
             if(logFiles == null){
-                Alog.v(TAG,"no logs");
+                Alog.d(TAG,"no logs");
                 return;
             }
 
             for (File logFile : logFiles) {
 
                 if (logFile.getName().endsWith(currentWritingLogFile)) {
-                    Alog.v(TAG, "skip current log file=" + logFile.getName());
+                    Alog.d(TAG, "skip current log file=" + logFile.getName());
                     continue;
                 }
 
@@ -89,7 +92,10 @@ class LogCompressor implements Runnable {
             while ((count = origin.read(data, 0, BUFFER_SIZE)) != -1) {
                 out.write(data, 0, count);
             }
+            out.flush();
+            out.finish();
             out.closeEntry();
+            Log.d(TAG, "zipFile: done filename="+filename+",zipFileName="+zipFileName);
         } catch (Exception e) {
             Alog.e(TAG, "zip error:", e);
         } finally {

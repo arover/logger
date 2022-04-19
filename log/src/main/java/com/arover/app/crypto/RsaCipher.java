@@ -19,7 +19,7 @@ import javax.crypto.Cipher;
  */
 public class RsaCipher {
     public static final String RSA = "RSA";
-    public static final String TRANSFORMATION = "RSA/ECB/OAEPwithSHA-256andMGF1Padding";
+    public static final String TRANSFORMATION = "RSA/NONE/OAEPwithSHA-256andMGF1Padding";
 
     public static byte[] encrypt(byte[] data, byte[] publicKey) throws Exception {
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKey);
