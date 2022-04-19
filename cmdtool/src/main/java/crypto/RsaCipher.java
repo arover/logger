@@ -44,6 +44,17 @@ public class RsaCipher {
 
         return cp.doFinal(encrypted);
     }
+    public static byte[] decrypt(String provider,byte[] encrypted, byte[] privateKey) throws Exception {
+
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKey);
+        KeyFactory kf = KeyFactory.getInstance(RSA);
+        PrivateKey keyPrivate = kf.generatePrivate(keySpec);
+
+        Cipher cp = Cipher.getInstance(TRANSFORMATION, provider);
+        cp.init(Cipher.DECRYPT_MODE, keyPrivate);
+
+        return cp.doFinal(encrypted);
+    }
 
     public static KeyPair createKeyPair() throws NoSuchAlgorithmException {
         KeyPairGenerator kpg = KeyPairGenerator.getInstance(RSA);

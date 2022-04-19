@@ -28,7 +28,7 @@ import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
  */
 public class Alog {
 
-    private static final String TAG = "AroverLogger";
+    private static final String TAG = "Alog";
 
     public static String rootDir;
 

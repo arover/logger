@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.arover.app.util.ProcessUtil;
 
@@ -19,7 +20,7 @@ import java.util.concurrent.Executors;
  * the manager and context of this logger
  */
 public class LoggerManager {
-    private static final String TAG = "LoggerManager";
+    private static final String TAG = "Alog::Manager";
     private static final int DEFAULT_MAX_LOG_IN_DAYS = 10;
     private static final long DELETE_LOG_DELAY = 20 * 1000;
 
@@ -291,7 +292,7 @@ public class LoggerManager {
 
             for (File folder : folders) {
 
-                Alog.d(TAG, "DeleteLogTask remove Logs of folder: " + folder);
+                Alog.d(TAG, "DeleteLogTask finding old Logs of folder: " + folder);
 
                 File[] logFiles = folder.listFiles(f ->
                         (f.getName().contains("zip") || f.getName().contains(LoggerManager.ext)));
@@ -300,6 +301,7 @@ public class LoggerManager {
 
                 for (File logFile : logFiles) {
                     if (isNDaysBeforeFiles(days, logFile)) {
+                        Alog.i(TAG, "removeLogs: file="+logFile.getName());
                         boolean deleted = logFile.delete();
                         Alog.i(TAG, "DeleteLogTask delete logFile=" + logFile+",deleted="+deleted);
                     }
