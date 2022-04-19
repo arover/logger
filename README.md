@@ -15,7 +15,7 @@
 
 ```groovy
 dependencies {
-		implementation 'com.github.arover:logger:1.3'
+		implementation 'com.github.arover:logger:2.1.0'
 	}
 
 ```
