@@ -1,8 +1,13 @@
 package com.arover.app.logger;
 
+import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
+import static com.arover.app.util.DataUtil.bytesToHexString;
+
 import android.content.Context;
 import android.net.Uri;
 import android.os.Process;
+
+import androidx.annotation.Nullable;
 
 import com.arover.app.crypto.AesCbcCipher;
 import com.arover.app.crypto.RsaCipher;
@@ -16,11 +21,6 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.UnknownHostException;
-
-import androidx.annotation.Nullable;
-
-import static com.arover.app.util.DataUtil.bytesToHexString;
-import static com.arover.app.logger.LogWriterThread.MODE_ENCRYPT_LOG;
 
 /**
  * File storage logger
@@ -40,7 +40,7 @@ public class Alog {
     public static String sLogLvlName;
     static String sLogDir;
     static boolean sInitialized;
-    private static LogExecutor logGenerator;
+
     volatile static OnLogCompressDoneListener onLogCompressListener;
 
 
@@ -66,7 +66,6 @@ public class Alog {
         setLogDir(manager.getLogDirFullPath());
         setLogLevel(manager.getLevel());
         sLogcatEnabled = manager.enableLogcat();
-        logGenerator = manager.logExecutor;
 
         if (logWriterThread != null) {
             logWriterThread.quit();
@@ -200,19 +199,6 @@ public class Alog {
         if (sLogLvl < Level.DEBUG.code)
             return;
         d(tag, "", t);
-    }
-
-    public static void dd(String tag, String format, Object... args) {
-        if (sLogLvl < Level.DEBUG.code)
-            return;
-
-        if (args == null || args.length == 0) {
-            d(tag, format);
-            return;
-        }
-
-        LogStringGenerator runnable = new LogStringGenerator(Level.DEBUG, tag, format, args);
-        logGenerator.execute(runnable);
     }
 
     public static void d(String tag, String msg, Throwable t) {

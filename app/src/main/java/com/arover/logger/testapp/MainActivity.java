@@ -68,12 +68,12 @@ public class MainActivity extends AppCompatActivity {
 
         Alog.d(TAG, "onCreate");
 
-        setContentView(com.arover.logger.R.layout.activity_main);
+        setContentView(R.layout.activity_main);
 
-        resultTxt = findViewById(com.arover.logger.R.id.result);
-        resultTxt2 = findViewById(com.arover.logger.R.id.result2);
+        resultTxt = findViewById(R.id.result);
+        resultTxt2 = findViewById(R.id.result2);
 
-        findViewById(com.arover.logger.R.id.decrypt_file).setOnClickListener(v -> {
+        findViewById(R.id.decrypt_file).setOnClickListener(v -> {
             if (logFileUri == null) {
                 Toast.makeText(getApplicationContext(), "please choose log file first!",
                         Toast.LENGTH_SHORT).show();
@@ -81,10 +81,10 @@ public class MainActivity extends AppCompatActivity {
                 decryptLog(logFileUri);
             }
         });
-        findViewById(com.arover.logger.R.id.choose_file_btn).setOnClickListener(v -> {
+        findViewById(R.id.choose_file_btn).setOnClickListener(v -> {
             chooseFile();
         });
-        findViewById(com.arover.logger.R.id.load_private_key).setOnClickListener(v -> {
+        findViewById(R.id.load_private_key).setOnClickListener(v -> {
             loadPrivateKey();
         });
 //        findViewById(R.id.decrypt_btn).setOnClickListener(v -> {
@@ -95,13 +95,13 @@ public class MainActivity extends AppCompatActivity {
 //            encryptTxt();
 //        });
 
-        findViewById(com.arover.logger.R.id.log).setOnClickListener(v -> {
+        findViewById(R.id.log).setOnClickListener(v -> {
             Alog.d(TAG, "on press log  " + System.currentTimeMillis()+", print some logs in files ... Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.");
         });
-        findViewById(com.arover.logger.R.id.gen_key_btn).setOnClickListener(v -> {
+        findViewById(R.id.gen_key_btn).setOnClickListener(v -> {
             createKeyPair();
         });
-        findViewById(com.arover.logger.R.id.flush_btn).setOnClickListener(v -> {
+        findViewById(R.id.flush_btn).setOnClickListener(v -> {
             Alog.flush();
         });
 
@@ -158,9 +158,9 @@ public class MainActivity extends AppCompatActivity {
     private void createKeyPair() {
         try {
             keypair = RsaCipher.createKeyPair();
-            resultTxt.setText(getString(com.arover.logger.R.string.public_key_is,
+            resultTxt.setText(getString(R.string.public_key_is,
                     DataUtil.bytesToHexString(keypair.getPublic().getEncoded())));
-            resultTxt2.setText(getString(com.arover.logger.R.string.private_key_is,
+            resultTxt2.setText(getString(R.string.private_key_is,
                     DataUtil.bytesToHexString(keypair.getPrivate().getEncoded())));
             Context appContext = getApplicationContext();
             privateKey = keypair.getPrivate().getEncoded();
@@ -331,7 +331,7 @@ public class MainActivity extends AppCompatActivity {
         chooseFile.addCategory(Intent.CATEGORY_OPENABLE);
         chooseFile.setType("application/*");
         startActivityForResult(
-                Intent.createChooser(chooseFile, getString(com.arover.logger.R.string.choose_log_file_title)),
+                Intent.createChooser(chooseFile, getString(R.string.choose_log_file_title)),
                 PICK_FILE_RESULT_CODE
         );
     }

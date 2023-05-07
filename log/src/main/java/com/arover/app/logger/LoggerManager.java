@@ -13,8 +13,6 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * the manager and context of this logger
@@ -28,11 +26,14 @@ public class LoggerManager {
     private String logDirFullPath;
     private boolean enableLogcat;
     private Level level = Level.VERBOSE;
-    LogExecutor logExecutor;
     private String rootFolder = "logs";
     private String publicKey;
     private String processLogFolder = "";
     private static String ext = ".log";
+
+    public Context getContext() {
+        return context;
+    }
 
     public static class Builder {
         private final LoggerManager mgr;
@@ -90,11 +91,6 @@ public class LoggerManager {
             return this;
         }
 
-        public Builder logTaskExecutor(LogExecutor executor) {
-            mgr.logExecutor = executor;
-            return this;
-        }
-
         public LoggerManager build() {
             mgr.initialize();
             return mgr;
@@ -119,13 +115,6 @@ public class LoggerManager {
 
     public String getLogFileExt() {
         return ext;
-    }
-
-    public void setLogPrinterWorker(LogExecutor logGenerator) {
-        if (logExecutor != null) {
-            logExecutor.tearDown();
-        }
-        logExecutor = logGenerator;
     }
 
     /**
@@ -159,11 +148,7 @@ public class LoggerManager {
     }
 
     void perform(Runnable runnable) {
-        if (logExecutor != null) {
-            logExecutor.execute(runnable);
-        } else {
-            new Thread(runnable).start();
-        }
+        new Thread(runnable).start();
     }
 
     private void initialize() {
@@ -173,9 +158,6 @@ public class LoggerManager {
 
         if (level == null) {
             throw new NullPointerException("log level is null");
-        }
-        if (logExecutor == null) {
-            logExecutor = new DefaultLogExecutor();
         }
 
         initStorageFolder(rootFolder, processLogFolder);
@@ -242,11 +224,7 @@ public class LoggerManager {
 
         Alog.d(TAG, "deleteOldLogs days="+logFileDays+",dir="+ Alog.getRootDir());
 
-        if (logExecutor != null) {
-            logExecutor.execute(new DeleteLogTask(Alog.getRootDir(), days));
-        } else {
-            new Thread(new DeleteLogTask(Alog.getRootDir(), days)).start();
-        }
+        new Thread(new DeleteLogTask(Alog.getRootDir(), days)).start();
     }
 
     /**
@@ -310,23 +288,9 @@ public class LoggerManager {
         }
 
         private boolean isNDaysBeforeFiles(int days, File file) {
-            return System.currentTimeMillis() - file.lastModified() > days * DAY_IN_MILLS;
+            return System.currentTimeMillis() - file.lastModified() > (long) days * DAY_IN_MILLS;
         }
     }
 
-    private static class DefaultLogExecutor extends LogExecutor {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        @Override
-        public void execute(Runnable runnable) {
-            executor.execute(runnable);
-        }
-
-        @Override
-        public void tearDown() {
-            executor.shutdown();
-            executor = null;
-        }
-
-    }
 }

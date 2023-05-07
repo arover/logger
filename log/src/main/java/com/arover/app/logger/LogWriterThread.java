@@ -1,9 +1,13 @@
 package com.arover.app.logger;
 
+import static android.os.Environment.MEDIA_MOUNTED;
+
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.os.Process;
+import android.os.StatFs;
 import android.util.Log;
 
 import com.arover.app.crypto.AesCbcCipher;
@@ -16,6 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Calendar;
+import java.util.Objects;
 
 import static com.arover.app.util.DataUtil.hexStringToBytes;
 import static com.arover.app.util.DataUtil.intToBytes;
@@ -37,10 +42,11 @@ public class LogWriterThread extends HandlerThread {
 
     public static final int BUFFER_SIZE = 1024 * 32;
     private static final ByteBuffer sLogBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE);
-    private static final long MAX_LOG_FILE_SIZE = 1024 * 1024 ; //1mb
+    private static final long MAX_LOG_FILE_SIZE = 20 * 1024 * 1024 ; // 20MB
     private static final int FLUSH_THRESHOLD = BUFFER_SIZE / 8;// write log if size > 4kb
     static final byte MODE_ENCRYPT_LOG = 1;
     static final byte MODE_PLAIN_LOG = 0;
+    private static final long SIZE_1GB = 1024 * 1024 ; //KB
     private final LoggerManager logManager;
     public static LogWriterThread instance;
     private final byte logTextEncryptionMode;
@@ -191,11 +197,19 @@ public class LogWriterThread extends HandlerThread {
             return;
         }
 
+        String state = Environment.getExternalStorageState();
+
+        if (!Objects.equals(state, MEDIA_MOUNTED)) {
+            android.util.Log.e(TAG, "LOGGER ERROR writeLog SD card not available");
+            return;
+        }
+
         if (diskNoMoreSpace()) {
-            android.util.Log.e(TAG, "LOGGER ERROR  no more space.");
+            android.util.Log.w(TAG, "WARN:: external storage low space. log will be discarded");
             sLogBuffer.clear();
             return;
         }
+
         boolean doWriteNow;
         if (logTextEncryptionMode == MODE_ENCRYPT_LOG) {
             doWriteNow = sLogBuffer.position() > FLUSH_THRESHOLD || forceFlush;
@@ -221,7 +235,30 @@ public class LogWriterThread extends HandlerThread {
     }
 
     private boolean diskNoMoreSpace() {
-        return false;
+
+//        StatFs sf = new StatFs(logManager.getContext().getFilesDir().getPath());
+        File dataDirectory = Environment.getDataDirectory();
+        StatFs sf = new StatFs(dataDirectory.getPath());
+        long availCount = sf.getAvailableBlocksLong();
+        long blockSize = sf.getBlockSizeLong();
+
+        Log.d(TAG, "freeSize:"+ formatSize(availCount*blockSize));
+
+        return availCount * blockSize / 1024 < SIZE_1GB;
+    }
+
+    private String formatSize(long size){
+        long rSize = size;
+        String ext = "";
+        if (size > 1024){
+            ext = "KB";
+            rSize /= 1024;
+            if( rSize > 1024){
+                ext = "MB";
+                rSize /= 1024;
+            }
+        }
+        return rSize + ext;
     }
 
     private void writePlainLog(byte[] temp) {

@@ -75,6 +75,11 @@ dependencies {
 
     implementation(libs.x.appcompat)
     implementation(libs.x.constraintlayout)
+// https://mvnrepository.com/artifact/io.reactivex.rxjava3/rxjava
+    implementation("io.reactivex.rxjava3:rxjava:3.1.6")
+    // https://mvnrepository.com/artifact/io.reactivex.rxjava3/rxandroid
+    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
+
 
     implementation(project(":log"))
 
