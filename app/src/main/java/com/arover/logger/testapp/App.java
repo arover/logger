@@ -1,4 +1,4 @@
-package com.arover.logger;
+package com.arover.logger.testapp;
 
 import android.app.ActivityManager;
 import android.app.Application;

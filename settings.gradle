@@ -1,4 +1,0 @@
-include ':log'
-include ':app'
-rootProject.name = "Logger"
-include ':cmdtool'
